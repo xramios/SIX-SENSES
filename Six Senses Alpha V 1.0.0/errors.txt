@@ -1,0 +1,10 @@
+﻿I'm sorry, but errors were detected in your script. Please correct the
+errors listed below, and try again.
+
+
+File "game/script.rpy", line 210: expected statement.
+    abel storage_room:
+                     ^
+
+Ren'Py Version: Ren'Py 8.5.2.26010301
+Wed Feb 25 14:45:13 2026
