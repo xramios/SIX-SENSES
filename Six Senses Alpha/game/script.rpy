@@ -11,6 +11,37 @@ define op = Character("911 Operator", color="#C20101")
 # --- Transitions ---
 define flash = Fade(.25, 0.0, .75, color="#fff")
 
+transform lift_on_hover:
+    yoffset 0
+    on hover:
+        linear 0.2 yoffset -20
+    on idle:
+        linear 0.2 yoffset 0
+
+transform lightning_flicker:
+    alpha 0.0
+    xalign 0.5 yalign 0.5
+    
+    block:
+        parallel:
+            linear 0.15 alpha 0.6
+        parallel:
+            xzoom 1.0
+        
+        pause 0.05
+
+        alpha 0.1 xzoom -1.0
+        pause 0.05
+        alpha 0.2 xzoom 1.0
+        pause 0.05
+        alpha 0.9 xzoom -1.0
+        pause 0.05
+        
+        linear 0.2 alpha 0.0
+        
+        pause 0.8
+        repeat
+
 # --- Variables ---
 default player_name = "Detective"
 default show_hud = False
@@ -89,6 +120,36 @@ screen detective_hud():
                 xpos 50 ypos 700 
                 action Return("go_hallway")
                 tooltip "Exit Storage Room"
+            imagebutton:
+                idle "images/cs/body.png"
+                hover "images/cs/bodyh.png"
+                at transform:
+                    nearest True
+                    zoom 1
+                    rotate -20
+                    anchor (0.5, 0.5)
+                xpos 800 ypos 250
+                action Return("go_body")
+                tooltip("Examine the body")
+        if current_location == "body":
+            imagebutton:
+                idle "images/ui/arrow_idle.png"
+                hover "images/ui/arrow_hover.png"
+                at transform:
+                    nearest True
+                    zoom 0.3
+                xpos 50 ypos 700 
+                action Return("go_storage")
+                tooltip "Return"
+            imagebutton:
+                idle "images/cs/bloods body.png"
+                hover "images/cs/bloods_body.png"
+                at transform:
+                    nearest True
+                    zoom 0.3
+                xpos 50 ypos 700 
+                action Return("go_storage")
+                tooltip "Return"
             
 transform hud_zoom(norm, hov):
     on idle:
@@ -183,12 +244,18 @@ label start:
 
     stop sound
 
-    pc "Detective, are you available right now? no-it doesn't matter, come to the location I sent you, ASAP."
+    show text "{size=50}you answer the call, its the chief{/size}" as intro1:
+        xalign 0.5 yalign 0.8
     with dissolve
 
     hide intro1 with dissolve
+    pc "Detective, are you available right now?– no– it doesn't matter, come to the location i sent-ASAP"
+    with dissolve
 
-    show text "{size=50}groggy and confused at not even being able to answer, you hurriedly change and grab your things{/size}" as intro2:
+    hide intro1 with dissolve
+    window hide
+
+    show text "{size=30}groggy and confused at not even being able to answer, you hurriedly grab your keys and rush out the door{/size}" as intro2:
         xalign 0.5 yalign 0.8
     with dissolve
     
@@ -198,20 +265,24 @@ label start:
     scene black
     play sound "audio/exitinghome.mp3"
     $ renpy.pause(18.0)
-
+    
     scene car
     play sound "audio/carengine.mp3"
-    $ renpy.pause(0.5)
+    $ renpy.pause(5)
 
+    scene black
+    show lightning at lightning_flicker
+    $ renpy.pause(1)
+
+    scene black
     show sfc:
-        xalign 0.5 yalign 0.33
+        xalign 0.5 ypos 750
         zoom 0.5
         alpha 0.0
         linear 2.0 alpha 0.7
 
     show text "{size=25}Story adaptation from Silangan Film Circle{/size}":
-        xalign 0.5 yalign 0.45
-        alpha 0.0
+        xalign 0.5 ypos 950
         pause 0.5
         linear 1.0 alpha 1.0
 
@@ -223,12 +294,14 @@ label start:
 
     stop music
     stop sound
-    scene main_hallway with fade
+    scene elevator with fade
 
     play music "audio/police_siren.mp3" loop
     
     "As you walk inside, the uniformed officers lead you to the 6th floor."
-    "Police tape and personnel overflow from the storage room."
+    
+    scene main_hallway with fade    
+    "the chief notices you and comes over"
 
     show chief_normal at right with moveinright
     
@@ -253,7 +326,7 @@ label start:
     
     pc "Scene’s... rough. Whoever did this didn't hold back."
 
-    scene main_hallway with fade
+    scene hallway_main with fade
 
     show chief_normal at right
     pc "We may not have much information, but it’s better than nothing."
@@ -261,6 +334,12 @@ label start:
 # =========================
 # DAY 1 START
 # =========================
+    scene black
+    show text "{size=50}\nDAY 1{/size}" as intro1:
+        xalign 0.5 yalign 0.8
+    with dissolve
+    $ renpy.pause(1)
+
     play music "audio/ambiance_noise_d1.mp3" loop
 
     scene main_hallway with fade
@@ -305,13 +384,26 @@ label storage_room:
     scene crime_scene with fade
     
     "This is the storage room. Look around."
-    
+    window hide
+
     # This waits for the button click safely
     $ result = renpy.call_screen("detective_hud")
     
     if result == "go_hallway":
         jump hallway
+    elif result == "go_body":
+        jump body
     jump storage_room
 
+label body:
+    play music "audio/ambience_crime_scene_d1.mp3" loop 
+    $ current_location = "body"
+    scene zbody with fade
 
+    "Looking at the body, so many things are happening holy pack tangina."
+    window hide
 
+    $ result = renpy.call_screen("detective_hud")
+    if result == "go_storage":
+        jump storage_room
+    jump body
