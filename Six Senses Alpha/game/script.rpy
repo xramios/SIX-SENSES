@@ -449,7 +449,7 @@ label tutorial:
     show image "images/ui/bag_icon.png" as icon_inv at move_to_hud_left
     s "System: Go to your inventory."
 
-    $ inventory_list.append(Item("Crime Photo", "A photo of the 6th floor storage room.", "images/items/photo.png"))
+    $ add_item("Crime Photo", "A photo of the 6th floor storage room.", "images/items/photo.png")
     s "{u}Crime Photo{/u} added to your Bag."
 
     call screen inventory_screen
@@ -464,7 +464,7 @@ label tutorial:
     show image "images/ui/journal_icon.png" as icon_jou at move_to_hud_right
     s "System: Check your journal."
 
-    $ journal_list.append(Suspect("Dan (Janitor)", "The man who found the body. Seems shaken.", "images/suspects/dan_port.png"))
+    $ add_suspect("Dan (Janitor)", "The man who found the body. Seems shaken.", "images/suspects/dan_port.png")
     s "New Suspect added to Journal: {u}Dan.{/u}"
 
     call screen journal_screen
