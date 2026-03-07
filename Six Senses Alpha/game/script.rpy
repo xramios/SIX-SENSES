@@ -1,7 +1,7 @@
 define gui.text_font = "Ithaca-LVB75.ttf"
-default seen_scene_intro = False
+
 # --- Character Definitions ---
-define mc = Character("[player_name]")
+define mc = Character("Detective")
 define pc = Character("Captain", color="#4A90E2")
 define d = Character("Dan", color="#C5B358")
 define c = Character("Chandler", color="#F08080")
@@ -47,6 +47,19 @@ transform police_full_flicker:
         pause 0.8
         repeat
 
+screen item_get_message(message):
+    zorder 110
+    frame:
+        at popup_center
+        xpos 960 ypos 200
+        anchor (0.5, 0.5)
+        padding (20, 20)
+        background Solid("#000000CC")
+        text message color "#FFF" size 30
+    
+    # This screen hides itself after 2 seconds
+    timer 3.0 action Hide("item_get_message")
+
 transform popup_center:
     xalign 0.5 yalign 0.5
     zoom 0.0
@@ -59,9 +72,18 @@ transform move_to_hud_right:
     linear 0.8 xalign 0.53 yalign 0.02 zoom 0.37
 
 # --- Variables ---
-default player_name = "Detective"
 default show_hud = False
+default seen_scene_intro = False
+default scenario_picker1 = False
+default scenario_picker2 = False
 default current_location = "hallway"
+default evidence_taken = {
+    "waterbottle": False,
+    "knife": False,
+    "cigarette": False,
+    "drugs": False,
+    "patphone": False,
+}
 
 # =========================
 # DATA & LOGIC
@@ -91,7 +113,7 @@ init python: #Database System
             journal_list.append(Suspect(name, bio, img))
 
 # =========================
-# SCREENS (The GUI)
+# SCREENS (The HUD)
 # =========================
 screen detective_hud():
     zorder 100
@@ -117,7 +139,7 @@ screen detective_hud():
                 idle "invisible_idle"
                 hover "translucent_hover"
                 xysize (150, 200) 
-                xpos 1550 ypos 450
+                xpos 1560 ypos 450
                 action Return("go_hallway2")
                 tooltip "Go to Hallway 2"
             
@@ -128,9 +150,9 @@ screen detective_hud():
                 hover "images/ui/door_hover.png"
                 at transform:
                     nearest True
-                    zoom 3.05
-                xpos 869 ypos 360
-                action Return("go_storage_scenario1") 
+                    zoom 7
+                xpos 780 ypos 200
+                action Return("go_storage") 
                 tooltip "Enter Storage Room"
             imagebutton:
                 idle "invisible_idle"
@@ -164,6 +186,13 @@ screen detective_hud():
                 xpos 50 ypos 700 
                 action Return("go_hallway2")
                 tooltip "Return"
+            imagebutton:
+                idle "invisible_idle"
+                hover "translucent_hover"
+                xysize (600, 800) 
+                xpos 175 ypos 100
+                action Return("go_lockers")
+                tooltip "Go to Lockers"
 
         if current_location == "cctv_hallway":
             imagebutton:
@@ -175,8 +204,26 @@ screen detective_hud():
                 xpos 50 ypos 700 
                 action Return("go_stairs")
                 tooltip "Return"
-            
-        if current_location == "storage_room_scenario1":
+            imagebutton:
+                idle "invisible_idle"
+                hover "translucent_hover"
+                xysize (85, 700) 
+                xpos 435 ypos 250
+                action Return("go_cctv_room")
+                tooltip "Go to CCTV Room"
+        
+        if current_location == "cctv_room":
+            imagebutton:
+                idle "images/ui/arrow_idle.png"
+                hover "images/ui/arrow_hover.png"
+                at transform:
+                    nearest True
+                    zoom 0.3
+                xpos 50 ypos 700 
+                action Return("go_cctv_hallway")
+                tooltip "Return"
+
+        if current_location == "storage_room":
             imagebutton:
                 idle "images/ui/arrow_idle.png"
                 hover "images/ui/arrow_hover.png"
@@ -191,14 +238,29 @@ screen detective_hud():
                 hover "images/cs/bodyh.png"
                 at transform:
                     nearest True
-                    zoom 1
-                    rotate -20
+                    zoom 0.4
+                    rotate 10
                     anchor (0.5, 0.5)
-                xpos 800 ypos 250
-                action Return("go_body_scenario1")
+                xpos 850 ypos 400
+                action Return("go_body")
                 tooltip("Examine the body")
+            if not evidence_taken["waterbottle"]:
+                imagebutton:
+                    idle "images/cs/waterbottle.png"
+                    hover "images/cs/waterbottleh.png"
+                    at transform:
+                        nearest True
+                        zoom 0.25
+                    xpos 400 ypos 800
+                    action [
+                        Function(add_item, "Half-Empty Bottle", "Found near the victim's head. It looks like it was dropped in a hurry . The label is partially torn, and the plastic is heavily crinkled as if it were squeezed tightly.", "images/cs/waterbottle.png"),
+                        SetDict(evidence_taken, "waterbottle", True),
+                        Show("item_get_message", message="You found a Water bottle. It looks like it was dropped in a hurry . The label is partially torn, and the plastic is heavily crinkled as if it were squeezed tightly.")
+                    ]
+                    tooltip "Water Bottle"
+                
 
-        if current_location == "body_scenario1":
+        if current_location == "body":
             imagebutton:
                 idle "images/ui/arrow_idle.png"
                 hover "images/ui/arrow_hover.png"
@@ -206,7 +268,7 @@ screen detective_hud():
                     nearest True
                     zoom 0.3
                 xpos 50 ypos 700 
-                action Return("go_storage_scenario1")
+                action Return("go_storage")
                 tooltip "Return"
             imagebutton:
                 idle "images/cs/bloods body.png"
@@ -215,7 +277,35 @@ screen detective_hud():
                     nearest True
                     zoom 0.3
                 xpos 50 ypos 700 
-                action Return("go_storage_scenario1")
+                action Return("go_storage")
+                tooltip "Return"
+            
+        if current_location == "lockers":
+            imagebutton:
+                idle "invisible_idle"
+                hover "translucent_hover"
+                xysize (600, 800) 
+                xpos 175 ypos 100
+                action Return("go_patlocker")
+                tooltip "Go to Lockers"
+            imagebutton:
+                idle "images/ui/arrow_idle.png"
+                hover "images/ui/arrow_hover.png"
+                at transform:
+                    nearest True
+                    zoom 0.3
+                xpos 50 ypos 700 
+                action Return("go_stairs")
+                tooltip "Return"
+        if current_location == "patlocker":
+            imagebutton:
+                idle "images/ui/arrow_idle.png"
+                hover "images/ui/arrow_hover.png"
+                at transform:
+                    nearest True
+                    zoom 0.3
+                xpos 50 ypos 700 
+                action Return("go_lockers")
                 tooltip "Return"
 
 transform hud_zoom(norm, hov):
@@ -227,27 +317,35 @@ transform hud_zoom(norm, hov):
 screen inventory_screen():
     tag menu
     add Solid("#000000E6")
-    label "EVIDENCE BAG" align (0.5, 0.15)
+    label "EVIDENCE BAG" align (0.5, 0.05)
     hbox:
         align (0.5, 0.5)
-        spacing 40
+        spacing 80
         vpgrid:
-            cols 3 spacing 15 allow_underfull True xsize 480
-            for i in range(12):
+            cols 4          
+            spacing 25       
+            allow_underfull True 
+            xsize 1000
+            for i in range(16):
                 if i < len(inventory_list):
                     $ item = inventory_list[i]
                     button:
                         action SetVariable("selected_item", item)
-                        xysize (150, 150)
+                        xysize (180, 180)
                         background Frame(Solid("#444"), 4, 4)
-                        hover_background Solid("#666")
-                        add item.image align (0.5, 0.5)
+                        hover_background Solid("#4A90E2")
+                        add item.image:
+                            align (0.5, 0.5)
+                            zoom 0.8
                 else:
                     frame:
-                        xysize (150, 150) background Frame(Solid("#222"), 2, 2)
-                        text "EMPTY" align (0.5, 0.5) size 14 color "#444"
+                        xysize (180, 180) 
+                        background Frame(Solid("#222"), 2, 2)
+                        text "EMPTY" align (0.5, 0.5) size 18 color "#444"
         frame:
-            xsize 400 ysize 500 background Solid("#111")
+            xsize 600 
+            ysize 800 
+            background Solid("#111")
             vbox:
                 spacing 20
                 if selected_item:
@@ -284,7 +382,7 @@ screen journal_screen():
     textbutton "RETURN" action Return() align (0.5, 0.95)
 
 # =========================
-# PROLOGUE
+# INTRO
 # =========================
 label start:
     scene black with dissolve
@@ -410,7 +508,7 @@ label start:
 
     show chief_normal at right with moveinright
     
-    pc "You’re finally here, [player_name]."
+    pc "You’re finally here, [mc]."
     
     pc "It’s gruesome in there... *sighs*"
     pc "But we don't have time to dawdle—so let me fill you in."
@@ -481,8 +579,17 @@ label tutorial:
     s "System: You are ready to begin."
 
 # =========================
-# GAMEPLAY 
+# DAY 1
 # =========================
+    $ show_hud = False
+    scene black with fade
+    show text "{size=70}DAY 1{/size}" at truecenter
+    with dissolve
+
+    $ renpy.pause(3)
+
+
+
 label mhallway:
     play music "audio/ambiance_hallway_d1.mp3" loop
     $ current_location = "mhallway"
@@ -502,8 +609,8 @@ label hallway2:
     scene hallway2 with fade
 
     $ result = renpy.call_screen("detective_hud")
-    if result == "go_storage_scenario1":
-        jump storage_room_scenario1
+    if result == "go_storage":
+        jump storage_room
     elif result == "go_mhallway":
         jump mhallway
     elif result == "go_stairs":
@@ -520,10 +627,12 @@ label stairs:
         jump hallway2
     elif result == "go_cctv_hallway":
         jump cctv_hallway
+    elif result == "go_lockers":
+        jump lockers
     jump stairs
 
 label cctv_hallway:
-    play music "audio/ambiance_crime_scene_d1.mp3" loop
+    play music "audio/ambiance_hallway_d1.mp3" loop
     $ current_location = "cctv_hallway"
     scene cctv_hallway with fade
 
@@ -531,11 +640,28 @@ label cctv_hallway:
 
     if result == "go_stairs":
         jump stairs
+    elif result == "go_cctv_room":
+        if scenario_picker2 == False:
+            jump cctv_room
+        elif scenario_picker2 == True:
+            pc "While you we're checking the body, other detectives found the CCTV Room, check other stuff incase you miss other details. We'll send you the CCTV Recordings in the 3rd Day."
     jump cctv_hallway
 
-label storage_room_scenario1:
+label cctv_room:
+    play music "audio/ambiance_hallway_d1.mp3" loop
+    $ current_location = "cctv_room"
+    $ scenario_picker1 = True
+    scene cctv_room with fade
+
+    $ result = renpy.call_screen("detective_hud")
+
+    if result == "go_cctv_hallway":
+        jump cctv_hallway
+    jump cctv_room
+
+label storage_room:
     play music "audio/ambiance_crime_scene_d1.mp3" loop
-    $ current_location = "storage_room_scenario1"
+    $ current_location = "storage_room"
     scene crime_scene with fade
     
     if not seen_scene_intro:
@@ -547,19 +673,48 @@ label storage_room_scenario1:
     $ result = renpy.call_screen("detective_hud")
     if result == "go_hallway2":
         jump hallway2
-    elif result == "go_body_scenario1":
-        jump body_scenario1
-    jump storage_room_scenario1
+    elif result == "go_body":
+        if scenario_picker1 == False:
+            jump body
+        elif scenario_picker1 == True:
+           pc "The CSI guys are already checking the body while you we're gone. Check other stuff incase you miss other details. They'll send what they got from the body in the 3rd Day."
+    jump storage_room
 
-label body_scenario1:
+label body:
     play music "audio/ambience_crime_scene_d1.mp3" loop 
-    $ current_location = "body_scenario1"
+    $ current_location = "body"
+    $ scenario_picker2 = True
     scene zbody with fade
 
     "Looking at the body, so many things are happening holy pack tangina."
     window hide
 
     $ result = renpy.call_screen("detective_hud")
-    if result == "go_storage_scenario1":
-        jump storage_room_scenario1
-    jump body_scenario1
+    if result == "go_storage":
+        jump storage_room
+    jump body
+
+label lockers:
+    play music "audio/ambiance_hallway_d1.mp3" loop
+    $ current_location = "lockers"
+    $ show_hud = True
+    scene lockers with fade
+
+    $ result = renpy.call_screen("detective_hud")
+
+    if result == "go_stairs":
+        jump stairs
+    elif result == "go_patlocker":
+        jump patlocker
+    jump lockers
+
+label patlocker:
+    play music "audio/ambiance_hallway_d1.mp3" loop
+    $ current_location = "patlocker"
+    scene patlocker with fade
+
+    $ result = renpy.call_screen("detective_hud")
+
+    if result == "go_lockers":
+        jump lockers
+    jump patlocker
