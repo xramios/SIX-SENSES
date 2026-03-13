@@ -48,7 +48,7 @@ transform police_full_flicker:
         repeat
 
 screen item_get_message(message):
-    zorder 110
+    zorder 100
     frame:
         at popup_center
         xpos 960 ypos 200
@@ -74,16 +74,20 @@ transform move_to_hud_right:
 # --- Variables ---
 default show_hud = False
 default seen_scene_intro = False
+default seen_body = False
 default scenario_picker1 = False
 default scenario_picker2 = False
 default current_location = "hallway"
 default evidence_taken = {
     "waterbottle": False,
+    "patbag": False,
     "knife": False,
     "cigarette": False,
-    "drugs": False,
+    "powder": False,
+    "id": False,
     "patphone": False,
 }
+default day1_objective_complete = False
 
 # =========================
 # DATA & LOGIC
@@ -99,6 +103,8 @@ init python: #Database System
             self.name = name
             self.bio = bio
             self.image = image
+            self.descriptions = []
+            self.status = "Person of Interest"
     inventory_list = []
     journal_list = []
     selected_item = None
@@ -111,17 +117,59 @@ init python: #Database System
     def add_suspect(name, bio, img):
         if not any(x.name == name for x in journal_list):
             journal_list.append(Suspect(name, bio, img))
+    def record_clue(name, clue_text):
+        for person in journal_list:
+            if person.name == name:
+                if clue_text not in person.descriptions:
+                    person.descriptions.append(clue_text)
+                    # Show the little popup message we made earlier
+                    renpy.show_screen("item_get_message", message="Journal Updated: " + name)
+                return
+
+# =========================
+# DATA & LOGIC - MINIGAME
+# =========================
+    import random
+
+    class SlidingPuzzle:
+        def __init__(self, tiles_val):
+            self.tiles = tiles_val
+            self.blank_index = self.tiles.index(0) # 0 represents the empty slot
+
+        def switch(self, tile_index):
+            # Check if the clicked tile is adjacent to the blank space
+            # (Math for a 3x3 grid)
+            if tile_index in [self.blank_index-1, self.blank_index+1, self.blank_index-3, self.blank_index+3]:
+                # Special check for grid edges so they don't jump rows
+                if not (self.blank_index % 3 == 0 and tile_index == self.blank_index - 1) and \
+                   not (self.blank_index % 3 == 2 and tile_index == self.blank_index + 1):
+                    
+                    # Swap the tile with the blank space
+                    self.tiles[self.blank_index], self.tiles[tile_index] = self.tiles[tile_index], self.tiles[self.blank_index]
+                    self.blank_index = tile_index
+                    renpy.restart_interaction()
+
+        def is_solved(self):
+            return self.tiles == [1, 2, 3, 4, 5, 6, 7, 8, 0]
+
+    # Initialize the puzzle state
+    def start_puzzle():
+        initial_tiles = [1, 2, 3, 4, 5, 6, 7, 8, 0]
+        random.shuffle(initial_tiles)
+        return SlidingPuzzle(initial_tiles)
+
+default my_puzzle = None
 
 # =========================
 # SCREENS (The HUD)
 # =========================
 screen detective_hud():
-    zorder 100
+    zorder 10
     if show_hud:
         # TOP HUD
         hbox:
-            align (0.5, 0.02)
-            spacing 40
+            align (0.98, 0.02)
+            spacing 20
             imagebutton:
                 idle "images/ui/bag_icon.png"
                 hover "images/ui/bag_icon.png"
@@ -132,7 +180,13 @@ screen detective_hud():
                 hover "images/ui/journal_icon.png"
                 action [SetVariable("selected_suspect", None), ShowMenu("journal_screen")]
                 at hud_zoom(0.37, 0.45)
-
+        
+        if day1_objective_complete:
+            textbutton "FINISH INVESTIGATION":
+                align (0.5, 0.92) # Bottom center
+                style "finish_day_button"
+                action Return("end_the_day")
+            
         # WORLD INTERACTIONS
         if current_location == "mhallway":
             imagebutton:
@@ -150,8 +204,8 @@ screen detective_hud():
                 hover "images/ui/door_hover.png"
                 at transform:
                     nearest True
-                    zoom 7
-                xpos 780 ypos 200
+                    zoom 1
+                xpos 740 ypos 263
                 action Return("go_storage") 
                 tooltip "Enter Storage Room"
             imagebutton:
@@ -164,7 +218,7 @@ screen detective_hud():
             imagebutton:
                 idle "invisible_idle"
                 hover "translucent_hover"
-                xysize (300, 1500) 
+                xysize (300, 1300) 
                 xpos 0 ypos 0
                 action Return("go_stairs")
                 tooltip "Go to Stairs"
@@ -174,7 +228,7 @@ screen detective_hud():
                 idle "invisible_idle"
                 hover "translucent_hover"
                 xysize (800, 800) 
-                xpos 1200 ypos 0
+                xpos 1100 ypos 130
                 action Return("go_cctv_hallway")
                 tooltip "Go to CCTV Hallway"
             imagebutton:
@@ -214,6 +268,12 @@ screen detective_hud():
         
         if current_location == "cctv_room":
             imagebutton:
+                idle "invisible_idle"
+                hover "translucent_hover"
+                xysize (400, 300) # Adjust to fit your monitor size
+                xpos 800 ypos 300 # Adjust to your monitor position
+                action Return("solve_cctv")
+            imagebutton:
                 idle "images/ui/arrow_idle.png"
                 hover "images/ui/arrow_hover.png"
                 at transform:
@@ -238,10 +298,8 @@ screen detective_hud():
                 hover "images/cs/bodyh.png"
                 at transform:
                     nearest True
-                    zoom 0.4
-                    rotate 10
-                    anchor (0.5, 0.5)
-                xpos 850 ypos 400
+                    zoom 1
+                xpos 616 ypos 537
                 action Return("go_body")
                 tooltip("Examine the body")
             if not evidence_taken["waterbottle"]:
@@ -250,14 +308,70 @@ screen detective_hud():
                     hover "images/cs/waterbottleh.png"
                     at transform:
                         nearest True
-                        zoom 0.25
-                    xpos 400 ypos 800
+                        zoom 1
+                    xpos 690 ypos 743
                     action [
                         Function(add_item, "Half-Empty Bottle", "Found near the victim's head. It looks like it was dropped in a hurry . The label is partially torn, and the plastic is heavily crinkled as if it were squeezed tightly.", "images/cs/waterbottle.png"),
                         SetDict(evidence_taken, "waterbottle", True),
                         Show("item_get_message", message="You found a Water bottle. It looks like it was dropped in a hurry . The label is partially torn, and the plastic is heavily crinkled as if it were squeezed tightly.")
                     ]
                     tooltip "Water Bottle"
+            if not evidence_taken["patbag"]:
+                imagebutton:
+                    idle "images/cs/patbag.png"
+                    hover "images/cs/patbagh.png"
+                    at transform:
+                        nearest True
+                        zoom 1
+                    xpos 355 ypos 798
+                    action [
+                        Function(add_item, "Bag", "placeholder", "images/cs/patbag.png"),
+                        SetDict(evidence_taken, "patbag", True),
+                        Show("item_get_message", message="You found a bag. Placeholder")
+                    ]
+                    tooltip "Bag"
+            if not evidence_taken["patphone"]:
+                imagebutton:
+                    idle "images/cs/patphone.png"
+                    hover "images/cs/patphoneh.png"
+                    at transform:
+                        nearest True
+                        zoom 1
+                    xpos 700 ypos 965
+                    action [
+                        Function(add_item, "Phone", "placeholder", "images/cs/patphone.png"),
+                        SetDict(evidence_taken, "patphone", True),
+                        Show("item_get_message", message="You found a phone. Placeholder")
+                    ]
+                    tooltip "Phone"
+            if not evidence_taken["powder"]:
+                imagebutton:
+                    idle "images/cs/powder.png"
+                    hover "images/cs/powderh.png"
+                    at transform:
+                        nearest True
+                        zoom 1
+                    xpos 949 ypos 810
+                    action [
+                        Function(add_item, "Drugs", "placeholder", "images/cs/powder.png"),
+                        SetDict(evidence_taken, "powder", True),
+                        Show("item_get_message", message="You found some Drugs. Placeholder")
+                    ]
+                    tooltip "Drugs"
+            if not evidence_taken["id"]:
+                imagebutton:
+                    idle "images/cs/id.png"
+                    hover "images/cs/idh.png"
+                    at transform:
+                        nearest True
+                        zoom 1
+                    xpos 1200 ypos 810
+                    action [
+                        Function(add_item, "ID", "placeholder", "images/cs/id.png"),
+                        SetDict(evidence_taken, "id", True),
+                        Show("item_get_message", message="You found an ID. Placeholder")
+                    ]
+                    tooltip "ID"
                 
 
         if current_location == "body":
@@ -271,12 +385,12 @@ screen detective_hud():
                 action Return("go_storage")
                 tooltip "Return"
             imagebutton:
-                idle "images/cs/bloods body.png"
-                hover "images/cs/bloods_body.png"
+                idle "images/cs/wound.png"
+                hover "images/cs/woundh.png"
                 at transform:
                     nearest True
-                    zoom 0.3
-                xpos 50 ypos 700 
+                    zoom 1
+                xpos 1080 ypos 650 
                 action Return("go_storage")
                 tooltip "Return"
             
@@ -334,9 +448,14 @@ screen inventory_screen():
                         xysize (180, 180)
                         background Frame(Solid("#444"), 4, 4)
                         hover_background Solid("#4A90E2")
-                        add item.image:
+                        fixed:
+                            xysize (150, 150) # Smaller than 180 to allow for padding
                             align (0.5, 0.5)
-                            zoom 0.8
+                
+                            add item.image:
+                                size (150, 150)
+                                fit "contain"
+                                align (0.5, 0.5)
                 else:
                     frame:
                         xysize (180, 180) 
@@ -349,42 +468,205 @@ screen inventory_screen():
             vbox:
                 spacing 20
                 if selected_item:
-                    add selected_item.image xalign 0.5
-                    text selected_item.name size 28 color "#4A90E2"
-                    text selected_item.description size 18
+                    add Transform(selected_item.image, fit="contain"):
+                        xysize (400, 400)
+                        xalign 0.5
+                    text selected_item.name size 30 color "#4A90E2"
+                    text selected_item.description size 23
                 else:
                     text "Select item..." align (0.5, 0.5) color "#888"
     textbutton "RETURN" action Return() align (0.5, 0.95)
 
+# =========================
+# Journal Screen
+# =========================
+default journal_page = 0
+default day_count = 1
+default journal_list = []
+default selected_suspects = []
+default eliminated_suspects = []
+
 screen journal_screen():
     tag menu
     add Solid("#0b121a")
-    label "SUSPECT FILES" align (0.5, 0.15)
-    hbox:
-        align (0.5, 0.5) spacing 40
-        vbox:
-            spacing 10
-            for person in journal_list:
-                button:
-                    action SetVariable("selected_suspect", person)
-                    xsize 300 ysize 60 background Solid("#222")
-                    hover_background Solid("#4A90E2")
-                    text person.name align (0.5, 0.5)
-        frame:
-            xsize 500 ysize 500 background Solid("#111")
-            if selected_suspect:
-                vbox:
-                    add selected_suspect.image xalign 0.5
-                    text selected_suspect.name size 30 color "#F08080"
-                    text selected_suspect.bio size 18
-            else:
-                text "Select file..." align (0.5, 0.5)
+
+    frame:
+        xsize 1200 ysize 800
+        align (0.5, 0.6) 
+        background Frame(Solid("#f4ecd8"), 4, 4) 
+        padding (40, 40)
+
+        # --- RIGHT SIDE TABS ---
+        hbox:
+            ypos -80 # Pulls the tabs UP above the frame
+            xalign 0.0 # Aligns them to the left edge of the book
+            spacing 2 # Small gap between tabs
+            
+            textbutton "Cover" action SetVariable("journal_page", 0) style "journal_tab"
+            textbutton "Report" action SetVariable("journal_page", 1) style "journal_tab"
+            
+            # This loop automatically handles new suspects as they are appended
+            for i, person in enumerate(journal_list):
+                textbutton person.name:
+                    action SetVariable("journal_page", i + 2)
+                    style "journal_tab"
+
+            if day_count >= 6:
+                textbutton "FINAL" action SetVariable("journal_page", len(journal_list) + 2) style "journal_tab"
+
+        # --- PAGE CONTENT ---
+        # (This part stays the same as your previous code)
+        if journal_page == 0:
+            vbox:
+                align (0.5, 0.5)
+                text "SIX SENSES" size 80 color "#222" 
+                text "CASE FILE #109" size 20 color "#555" xalign 0.5
+
+        elif journal_page == 1:
+            hbox:
+                spacing 50
+                vbox: 
+                    xsize 500
+                    text "Initial Case Report" size 30 color "#222"
+                    text "The body was found at 2:00 AM..." color "#333" size 18
+                vbox: 
+                    xsize 500
+                    text "Evidence Photo" size 22 color "#222" xalign 0.5
+                    add Transform("images/crime_scene.png", fit="contain"):
+                        size (450, 350)
+
+        elif journal_page <= len(journal_list) + 1:
+            $ current_person = journal_list[journal_page - 2]
+            hbox:
+                spacing 50
+                vbox: 
+                    xsize 500
+                    text current_person.name size 35 color "#222"
+            
+                    if "Pat" in current_person.name:
+                        # Non-clickable status for the victim
+                        frame:
+                            background Solid("#8B0000") # Blood red
+                            padding (15, 5)
+                            text "DECEASED / VICTIM" size 18 color "#fff" bold True
+                        
+                        null height 10
+                        text "File: Case #109-B" size 14 color "#555" italic True
+
+                    else:
+                        # Regular toggle button for living suspects
+                        textbutton "[current_person.status] ▼":
+                            style "status_toggle_button"
+                            action If(current_person.status == "Person of Interest", 
+                                     SetField(current_person, "status", "Suspect"), 
+                                     SetField(current_person, "status", "Person of Interest"))
+
+                    add Transform(current_person.image, fit="contain"):
+                        size (400, 500)
+                vbox: 
+                    xsize 500
+                    spacing 15
+                    for entry in current_person.descriptions: 
+                        if "|" in entry:
+                            $ header, body = entry.split("|")
+                            text header size 22 bold True color "#4A90E2"
+                            text body size 18 color "#333"
+                        else:
+                            text entry size 18 color "#333"
+        else:
+            # THE KILLER LIST
+            vpgrid:
+                cols 2
+                spacing 20
+                align (0.5, 0.4)
+                for person in journal_list:
+                    hbox:
+                        spacing 10
+                        textbutton "X":
+                            action ToggleSetMembership(eliminated_suspects, person)
+                            text_size 30
+                        
+                        textbutton person.name:
+                            action ToggleSetMembership(selected_suspects, person)
+                            if person in eliminated_suspects:
+                                text_strikethrough True
+                                text_color "#888"
+                            elif person in selected_suspects:
+                                text_color "#f00"
+                            else:
+                                text_color "#222"
+
+    # Navigation & Return
+    if journal_page > 0:
+        textbutton " < " action SetVariable("journal_page", journal_page - 1) align (0.1, 0.5) text_size 60
+    if journal_page < (len(journal_list) + (2 if day_count >= 6 else 1)):
+        textbutton " > " action SetVariable("journal_page", journal_page + 1) align (0.9, 0.5) text_size 60
+
     textbutton "RETURN" action Return() align (0.5, 0.95)
+
+# Styling the tabs to look like they are tucked under the book
+style journal_tab:
+    background Solid("#ccc")
+    padding (15, 10, 15, 5) # Left, Top, Right, Bottom
+    hover_background "#4A90E2"
+    selected_background "#f4ecd8" # Matches the book color when active
+    color "#000"
+    size 16
+    yminimum 50
+
+# =========================
+# HUD - MINIGAME
+# =========================
+
+screen cctv_puzzle_screen(puzzle_obj):
+    modal True
+    add Solid("#000a") 
+
+    frame:
+        align (0.5, 0.5)
+        padding (20, 20)
+        background Solid("#111") 
+
+        grid 3 3:
+            spacing 10
+            for i in range(9):
+                $ tile_num = puzzle_obj.tiles[i]
+                
+                if tile_num == 0:
+                    # We use a solid black square for the hole so we can see it
+                    null width 200 height 200 
+                else:
+                    # Create the path. 
+                    # CHANGE "images/" to "images/your_subfolder/" if needed!
+                    $ tile_path = "images/puzzle/tile_" + str(tile_num) + ".png"
+                    
+                    imagebutton:
+                        idle tile_path
+                        # This ensures the button has a size even if the image fails
+                        xysize (200, 200) 
+                        action [
+                            Function(puzzle_obj.switch, i), 
+                            If(puzzle_obj.is_solved(), Return("win"))
+                        ]
+
+    textbutton "CLOSE PUZZLE":
+        align (0.5, 0.95)
+        action Return("fail")
 
 # =========================
 # INTRO
 # =========================
 label start:
+
+    python:
+        for person in journal_list:
+            if not hasattr(person, 'status'):
+                person.status = "Person of Interest"
+            if not hasattr(person, 'descriptions'):
+                person.descriptions = []
+
+    $ add_suspect("Pat (Victim)", "Found in the storage room. Cause of death unknown.", "images/suspects/pat_dead.png")
+
     scene black with dissolve
     show headphones:
         xalign 0.5 yalign 0.33
@@ -502,7 +784,7 @@ label start:
     play music "audio/police_siren.mp3" loop
     
     "As you walk inside, the uniformed officers lead you to the 6th floor."
-    
+
     scene main_hallway with fade    
     "the chief notices you and comes over"
 
@@ -563,6 +845,8 @@ label tutorial:
     s "System: Check your journal."
 
     $ add_suspect("Dan (Janitor)", "The man who found the body. Seems shaken.", "images/suspects/dan_port.png")
+    # Starting clue:
+    $ journal_list[0].descriptions.append("Observation|He was trembling when he spoke to the Captain.")
     s "New Suspect added to Journal: {u}Dan.{/u}"
 
     call screen journal_screen
@@ -577,6 +861,18 @@ label tutorial:
     $ show_hud = True
     show screen detective_hud
     s "System: You are ready to begin."
+    
+    scene storage_room with fade
+    mc "The moment I stepped into the crime scene..."
+    mc "....my eyes started scanning everything."
+    mc "Blood stains."
+    mc "Footprints."
+    mc "Objects out of place."
+    mc "Details most people overlook"
+    show text Text("Sense Activated — SIGHT", size=70, color="#00FFFF") at truecenter    
+    with dissolve
+    s "Observe the environment carefully"
+    jump storage_room
 
 # =========================
 # DAY 1
@@ -587,8 +883,6 @@ label tutorial:
     with dissolve
 
     $ renpy.pause(3)
-
-
 
 label mhallway:
     play music "audio/ambiance_hallway_d1.mp3" loop
@@ -644,7 +938,7 @@ label cctv_hallway:
         if scenario_picker2 == False:
             jump cctv_room
         elif scenario_picker2 == True:
-            pc "While you we're checking the body, other detectives found the CCTV Room, check other stuff incase you miss other details. We'll send you the CCTV Recordings in the 3rd Day."
+            pc "its locked- but there seems to be someone inside..."
     jump cctv_hallway
 
 label cctv_room:
@@ -655,19 +949,35 @@ label cctv_room:
 
     $ result = renpy.call_screen("detective_hud")
 
-    if result == "go_cctv_hallway":
+    if result == "solve_cctv":
+        $ my_puzzle = start_puzzle() # Create the puzzle
+        $ puzzle_result = renpy.call_screen("cctv_puzzle_screen", my_puzzle)
+        
+        if puzzle_result == "win":
+            mc "The image cleared up! I can see the suspect now."
+            $ add_item("Clear CCTV Footage", "A restored image of the culprit.", "images/items/cctv_fix.png")
+        else:
+            mc "It's too corrupted. I'll have to try again later."
+        jump cctv_room
+
+    elif result == "go_cctv_hallway":
         jump cctv_hallway
-    jump cctv_room
 
 label storage_room:
     play music "audio/ambiance_crime_scene_d1.mp3" loop
     $ current_location = "storage_room"
-    scene crime_scene with fade
+    scene storage_room with fade
     
     if not seen_scene_intro:
-        "You enter the room- and as you see the scene laid out, you cover mouth on instinct"
-        window hide
-        mc "I just cant get used to this"
+        $ result = renpy.hide_screen("detective_hud")
+        $ Pause (0.2)
+        mc "..."
+
+        mc "The victim."
+
+        mc "Right in the middle of the room."
+
+        mc "But the answers might not be."
         $ seen_scene_intro = True
 
     $ result = renpy.call_screen("detective_hud")
@@ -686,8 +996,16 @@ label body:
     $ scenario_picker2 = True
     scene zbody with fade
 
-    "Looking at the body, so many things are happening holy pack tangina."
+    if not seen_body:
+        $ result = renpy.hide_screen("detective_hud")
+        $ Pause (0.2)
+        mc "Looking at the body, so many things are happening holy pack tangina."
+        $ seen_body = True
+    
     window hide
+
+    $ record_clue("Pat (Victim)", "Time of Death|Estimated between 3:00 AM and 4:30 AM.")
+    $ record_clue("Pat (Victim)", "Wounds|Defensive wounds found on the forearms.")
 
     $ result = renpy.call_screen("detective_hud")
     if result == "go_storage":
@@ -718,3 +1036,15 @@ label patlocker:
     if result == "go_lockers":
         jump lockers
     jump patlocker
+
+# =========================
+# DAY 2
+# =========================
+label day2:
+    scene black with fade
+    $ show_hud = False
+    scene black with fade
+    show text "{size=70}DAY 2{/size}" at truecenter
+    with dissolve
+
+    $ renpy.pause(3)
