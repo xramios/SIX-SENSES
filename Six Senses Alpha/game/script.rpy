@@ -10,7 +10,7 @@ define a = Character("Austin", color="#9370DB")
 define op = Character("911 Operator", color="#C20101")
 define s = Character("System", color="#FFFFFF")
 
-# --- Transitions ---
+# --- Transitions & Transforms ---
 define flash = Fade(.25, 0.0, .75, color="#fff")
 image lightning_flash = Solid("#ffffff")
 image translucent_hover = Solid("#ffffff40")
@@ -48,6 +48,7 @@ transform police_full_flicker:
         repeat
 
 screen item_get_message(message):
+    tag popup
     zorder 100
     frame:
         at popup_center
@@ -56,20 +57,25 @@ screen item_get_message(message):
         padding (20, 20)
         background Solid("#000000CC")
         text message color "#FFF" size 30
-    
-    # This screen hides itself after 2 seconds
-    timer 3.0 action Hide("item_get_message")
+
+    timer 4.0 action Hide("item_get_message")
 
 transform popup_center:
     xalign 0.5 yalign 0.5
     zoom 0.0
     linear 0.3 zoom 1.0
 
-transform move_to_hud_left:
-    linear 0.8 xalign 0.47 yalign 0.02 zoom 0.15
-
 transform move_to_hud_right:
-    linear 0.8 xalign 0.53 yalign 0.02 zoom 0.37
+    parallel:
+        linear 0.6 xalign 0.98 yalign 0.02
+    parallel:
+        linear 0.6 zoom 0.2
+
+transform move_to_hud_left:
+    parallel:
+        linear 0.6 xalign 0.92 yalign 0.02 
+    parallel:
+        linear 0.6 zoom 0.2
 
 # --- Variables ---
 default show_hud = False
@@ -88,12 +94,17 @@ default evidence_taken = {
     "patphone": False,
 }
 default day1_objective_complete = False
+default current_day = 1
 
+transform DialogueFaces:
+    xalign 1.0
+    yalign 1.0 
+    yoffset -200
 # =========================
 # DATA & LOGIC
 # =========================
-init python: #Database System
-    class Item:
+init python:
+    class Item: 
         def __init__(self, name, description, image):
             self.name = name
             self.description = description
@@ -134,21 +145,15 @@ init python: #Database System
     class SlidingPuzzle:
         def __init__(self, tiles_val):
             self.tiles = tiles_val
-            self.blank_index = self.tiles.index(0) # 0 represents the empty slot
+            self.blank_index = self.tiles.index(0)
 
         def switch(self, tile_index):
-            # Check if the clicked tile is adjacent to the blank space
-            # (Math for a 3x3 grid)
             if tile_index in [self.blank_index-1, self.blank_index+1, self.blank_index-3, self.blank_index+3]:
-                # Special check for grid edges so they don't jump rows
                 if not (self.blank_index % 3 == 0 and tile_index == self.blank_index - 1) and \
                    not (self.blank_index % 3 == 2 and tile_index == self.blank_index + 1):
-                    
-                    # Swap the tile with the blank space
                     self.tiles[self.blank_index], self.tiles[tile_index] = self.tiles[tile_index], self.tiles[self.blank_index]
                     self.blank_index = tile_index
                     renpy.restart_interaction()
-
         def is_solved(self):
             return self.tiles == [1, 2, 3, 4, 5, 6, 7, 8, 0]
 
@@ -166,38 +171,63 @@ default my_puzzle = None
 screen detective_hud():
     zorder 10
     if show_hud:
-        # TOP HUD
         hbox:
             align (0.98, 0.02)
-            spacing 20
+            spacing 0.5
             imagebutton:
                 idle "images/ui/bag_icon.png"
                 hover "images/ui/bag_icon.png"
+                focus_mask True
                 action [SetVariable("selected_item", None), ShowMenu("inventory_screen")]
-                at hud_zoom(0.15, 0.22)
+                at hud_zoom(0.2, 0.22)
             imagebutton:
                 idle "images/ui/journal_icon.png"
                 hover "images/ui/journal_icon.png"
+                focus_mask True
                 action [SetVariable("selected_suspect", None), ShowMenu("journal_screen")]
-                at hud_zoom(0.37, 0.45)
-        
-        if day1_objective_complete:
-            textbutton "FINISH INVESTIGATION":
-                align (0.5, 0.92) # Bottom center
-                style "finish_day_button"
-                action Return("end_the_day")
+                at hud_zoom(0.2, 0.22)
             
         # WORLD INTERACTIONS
         if current_location == "mhallway":
             imagebutton:
                 idle "invisible_idle"
-                hover "translucent_hover"
                 xysize (150, 200) 
                 xpos 1560 ypos 450
                 action Return("go_hallway2")
                 tooltip "Go to Hallway 2"
-            
-
+            add "images/ui/arrow_idle.png" xpos 1590 ypos 570 at transform:
+                zoom 0.3
+                rotate 190
+                alpha 0.3
+            if scenario_picker1 or scenario_picker1:
+                imagebutton:
+                    idle "invisible_idle"
+                    xysize (170, 400)
+                    xpos 400 ypos 400
+                    action Jump("confirm_next_day")
+                    tooltip "End the Day"
+            else:
+                imagebutton:
+                    idle "invisible_idle"
+                    xysize (170, 400)
+                    xpos 400 ypos 400
+                    action Notify("I haven't found enough evidence to leave yet.")
+                    tooltip "Evidence Required"
+            add "images/ui/arrow_idle.png" xpos 280 ypos 500 at transform:
+                zoom 0.3
+                rotate -90
+                alpha 0.5
+            imagebutton:
+                idle "suspects/dan.png"
+                hover "suspects/dan.png"
+                focus_mask True
+                at transform:
+                    nearest True
+                    zoom 0.2
+                xpos 1260 ypos 460
+                action Jump("talk_to_dan") 
+                tooltip "Talk to Dan (Janitor)"
+      
         if current_location == "hallway2":
             imagebutton:
                 idle "images/ui/door_idle.png" 
@@ -209,16 +239,28 @@ screen detective_hud():
                 action Return("go_storage") 
                 tooltip "Enter Storage Room"
             imagebutton:
-                idle "invisible_idle"
-                hover "translucent_hover"
-                xysize (500, 1500) 
-                xpos 1600 ypos 0
+                idle "images/ui/arrow_idle.png"
+                hover "images/ui/arrow_hover.png"
+                at transform:
+                    xpos 1990 ypos 430
+                    anchor (0.5, 0.5)
+                    zoom 0.5
+                    rotate -90
+                    alpha 0.5
+                xysize (1000, 1080) 
+                xpos 0 ypos 0 
                 action Return("go_mhallway")
                 tooltip "Go to Main Hallway"
             imagebutton:
-                idle "invisible_idle"
-                hover "translucent_hover"
-                xysize (300, 1300) 
+                idle "images/ui/arrow_idle.png"
+                hover "images/ui/arrow_hover.png"
+                at transform:
+                    xpos -100 ypos 800
+                    anchor (0.5, 0.5)
+                    zoom 0.5
+                    rotate 90
+                    alpha 0.5
+                xysize (1000, 1080) 
                 xpos 0 ypos 0
                 action Return("go_stairs")
                 tooltip "Go to Stairs"
@@ -226,27 +268,34 @@ screen detective_hud():
         if current_location == "stairs":
             imagebutton:
                 idle "invisible_idle"
-                hover "translucent_hover"
                 xysize (800, 800) 
                 xpos 1100 ypos 130
                 action Return("go_cctv_hallway")
                 tooltip "Go to CCTV Hallway"
+            add "images/ui/arrow_idle.png" xpos 1700 ypos 470 at transform:
+                zoom 0.5
+                rotate 180
+                alpha 0.3
             imagebutton:
                 idle "images/ui/arrow_idle.png"
                 hover "images/ui/arrow_hover.png"
                 at transform:
                     nearest True
-                    zoom 0.3
-                xpos 50 ypos 700 
+                    zoom 0.5
+                    alpha 0.3
+                xpos 800 ypos 800 
                 action Return("go_hallway2")
                 tooltip "Return"
             imagebutton:
                 idle "invisible_idle"
-                hover "translucent_hover"
-                xysize (600, 800) 
-                xpos 175 ypos 100
+                xysize (800, 800) 
+                xpos 0 ypos 100
                 action Return("go_lockers")
                 tooltip "Go to Lockers"
+            add "images/ui/arrow_idle.png" xpos 10 ypos 470 at transform:
+                zoom 0.5
+                rotate -70
+                alpha 0.3
 
         if current_location == "cctv_hallway":
             imagebutton:
@@ -270,8 +319,8 @@ screen detective_hud():
             imagebutton:
                 idle "invisible_idle"
                 hover "translucent_hover"
-                xysize (400, 300) # Adjust to fit your monitor size
-                xpos 800 ypos 300 # Adjust to your monitor position
+                xysize (400, 300) 
+                xpos 800 ypos 300
                 action Return("solve_cctv")
             imagebutton:
                 idle "images/ui/arrow_idle.png"
@@ -293,47 +342,63 @@ screen detective_hud():
                 xpos 50 ypos 700 
                 action Return("go_hallway2")
                 tooltip "Exit Storage Room"
-            imagebutton:
-                idle "images/cs/body.png"
-                hover "images/cs/bodyh.png"
-                at transform:
-                    nearest True
-                    zoom 1
-                xpos 616 ypos 537
-                action Return("go_body")
-                tooltip("Examine the body")
+            if not scenario_picker1 and current_day == 1:
+                imagebutton:
+                    idle "images/cs/body.png"
+                    hover "images/cs/bodyh.png"
+                    focus_mask True
+                    at transform:
+                        nearest True
+                        zoom 1
+                    xpos 616 ypos 537
+                    action Return("go_body")
+                    tooltip("Examine the body")
+            else:
+                imagebutton:
+                    idle "images/cs/chalkbody.png"
+                    hover "images/cs/chalkbody.png"
+                    focus_mask True
+                    at transform:
+                        nearest True
+                        zoom 1
+                    xpos 0 ypos 0
+                    action Return("go_body")
+                    tooltip("Examine the body")
             if not evidence_taken["waterbottle"]:
                 imagebutton:
                     idle "images/cs/waterbottle.png"
                     hover "images/cs/waterbottleh.png"
+                    focus_mask True
                     at transform:
                         nearest True
                         zoom 1
                     xpos 690 ypos 743
                     action [
-                        Function(add_item, "Half-Empty Bottle", "Found near the victim's head. It looks like it was dropped in a hurry . The label is partially torn, and the plastic is heavily crinkled as if it were squeezed tightly.", "images/cs/waterbottle.png"),
+                        Function(add_item, "Half-Empty Bottle", "The bottle is empty, likely tossed aside by someone while he was tearing through Pat's things. It’s just another piece of debris from the suspect's frantic search, a silent witness to how out of control the situation has become.", "images/cs/waterbottle.png"),
                         SetDict(evidence_taken, "waterbottle", True),
-                        Show("item_get_message", message="You found a Water bottle. It looks like it was dropped in a hurry . The label is partially torn, and the plastic is heavily crinkled as if it were squeezed tightly.")
+                        Show("item_get_message", message="You found a Water bottle. It’s looks like its been crushed underfoot, the thin plastic crinkling loudly as you lift it from the mess on the ground.")
                     ]
                     tooltip "Water Bottle"
             if not evidence_taken["patbag"]:
                 imagebutton:
                     idle "images/cs/patbag.png"
                     hover "images/cs/patbagh.png"
+                    focus_mask True
                     at transform:
                         nearest True
                         zoom 1
                     xpos 355 ypos 798
                     action [
-                        Function(add_item, "Bag", "placeholder", "images/cs/patbag.png"),
+                        Function(add_item, "Bag", "You examine the bag’s hollow interior. It belongs to Pat, but it’s clear someone went through it with violent intent. Someone must have ransacked this, scattering her belongings everywhere in a desperate, failed search for something.", "images/cs/patbag.png"),
                         SetDict(evidence_taken, "patbag", True),
-                        Show("item_get_message", message="You found a bag. Placeholder")
+                        Show("item_get_message", message="You found a bag. It’s completely empty, the zipper pulled wide and the lining turned partially inside out.")
                     ]
                     tooltip "Bag"
             if not evidence_taken["patphone"]:
                 imagebutton:
                     idle "images/cs/patphone.png"
                     hover "images/cs/patphoneh.png"
+                    focus_mask True
                     at transform:
                         nearest True
                         zoom 1
@@ -348,12 +413,13 @@ screen detective_hud():
                 imagebutton:
                     idle "images/cs/powder.png"
                     hover "images/cs/powderh.png"
+                    focus_mask True
                     at transform:
                         nearest True
                         zoom 1
                     xpos 949 ypos 810
                     action [
-                        Function(add_item, "Drugs", "placeholder", "images/cs/powder.png"),
+                        Function(add_item, "Drugs", "They appear to be high-grade synthetics.", "images/cs/powder.png"),
                         SetDict(evidence_taken, "powder", True),
                         Show("item_get_message", message="You found some Drugs. Placeholder")
                     ]
@@ -362,14 +428,15 @@ screen detective_hud():
                 imagebutton:
                     idle "images/cs/id.png"
                     hover "images/cs/idh.png"
+                    focus_mask True
                     at transform:
                         nearest True
                         zoom 1
                     xpos 1200 ypos 810
                     action [
-                        Function(add_item, "ID", "placeholder", "images/cs/id.png"),
+                        Function(add_item, "ID", "You hold the frayed lanyard. The blood on the fabric is a grim reminder of the struggle that took place here. It was tossed aside like trash, likely during the moment Pat was overpowered.", "images/cs/id.png"),
                         SetDict(evidence_taken, "id", True),
-                        Show("item_get_message", message="You found an ID. Placeholder")
+                        Show("item_get_message", message="You found an ID. It’s roughed up and stained with fresh blood, looking less like a lost item and more like something that was forcibly ripped away and thrown.")
                     ]
                     tooltip "ID"
                 
@@ -385,23 +452,75 @@ screen detective_hud():
                 action Return("go_storage")
                 tooltip "Return"
             imagebutton:
-                idle "images/cs/wound.png"
-                hover "images/cs/woundh.png"
+                idle "images/cs/wound1.png"
+                hover "images/cs/wound1h.png"
+                focus_mask True
                 at transform:
                     nearest True
                     zoom 1
-                xpos 1080 ypos 650 
-                action Return("go_storage")
+                xpos 0 ypos 0
+                action Function(record_clue, "Pat (Victim)", "TORSO STAB 1 RIGHT ILIAC FOSSA | Might've punctured area affected the appendix and cecum; extreme risk of sepsis if the bowel was perforated.")
                 tooltip "Return"
-            
-        if current_location == "lockers":
             imagebutton:
-                idle "invisible_idle"
-                hover "translucent_hover"
-                xysize (600, 800) 
-                xpos 175 ypos 100
-                action Return("go_patlocker")
-                tooltip "Go to Lockers"
+                idle "images/cs/wound2.png"
+                hover "images/cs/wound2h.png"
+                focus_mask True
+                at transform:
+                    nearest True
+                    zoom 1
+                xpos 0 ypos 0
+                action Function(record_clue, "Pat (Victim)", "LEFT HYPOCHONDRIUM | Might've punctured area affected the appendix and cecum; extreme risk of sepsis if the bowel was perforated.")
+                tooltip "Return"
+            imagebutton:
+                idle "images/cs/wound3.png"
+                hover "images/cs/wound3h.png"
+                focus_mask True
+                at transform:
+                    nearest True
+                    zoom 1
+                xpos 0 ypos 0
+                action Function(record_clue, "Pat (Victim)", "STAB ON THE INFRACLAVICULAR REGION (UPPER CHEST AREA) | High pectoral penetration—initial guess is a tension pneumothorax (lung collapse) based on the chest wall position. high probability of hemothorax (blood entrance into the lung area)")
+                tooltip "Return"
+            imagebutton:
+                idle "images/cs/bruise1.png"
+                hover "images/cs/bruise1h.png"
+                focus_mask True
+                at transform:
+                    nearest True
+                    zoom 1
+                xpos 0 ypos 0
+                action Function(record_clue, "Pat (Victim)", "FOREARM BRUISE | Battered forearms—classic defensive wounds from a high-intensity struggle. looks like an intimidation tactic gone wrong—maybe a \"roughing up\" that spiraled out of control. Did she manage to mark the assailant during the scuffle? would explain why they’d be in a rush to finish her off and bail")
+                tooltip "Return"
+            imagebutton:
+                idle "images/cs/bruise2.png"
+                hover "images/cs/bruise2h.png"
+                focus_mask True
+                at transform:
+                    nearest True
+                    zoom 1
+                xpos 0 ypos 0
+                action Function(record_clue, "Pat (Victim)", "NECK BRUISE | Localized bruising around the throat—could be manual strangulation, but the positioning is weird. maybe from being dragged or held down during the stabbing? fingerprints might be too smudged to catch")
+                tooltip "Return"
+            imagebutton:
+                idle "images/cs/mouthfoam.png"
+                hover "images/cs/mouthfoamh.png"
+                focus_mask True
+                at transform:
+                    nearest True
+                    zoom 1
+                xpos 0 ypos 0
+                action Function(record_clue, "Pat (Victim)", "MOUTH FOAM | Presence of foam around the mouth—could indicate drowning or aspiration. The positioning suggests the victim may have been forced to ingest something. Could be related to the drugs i found in the storage room, or maybe something else entirely.")
+                tooltip "Return"
+
+        if current_location == "lockers":
+            if current_day == 2:
+                imagebutton:
+                    idle "invisible_idle"
+                    hover "translucent_hover"
+                    xysize (85, 450) 
+                    xpos 700 ypos 430
+                    action Return("go_zlockers")
+                    tooltip "Go to Zoomed Lockers"
             imagebutton:
                 idle "images/ui/arrow_idle.png"
                 hover "images/ui/arrow_hover.png"
@@ -411,6 +530,16 @@ screen detective_hud():
                 xpos 50 ypos 700 
                 action Return("go_stairs")
                 tooltip "Return"
+        if current_location == "zlockers":
+            imagebutton:
+                idle "images/scenes/patlocker_idle.png"
+                hover "images/scenes/patlockerh.png"
+                at transform:
+                    nearest True
+                    zoom 1
+                xpos 738 ypos 0
+                action Return("go_patlocker")
+                tooltip "Go to Pat's Lockers"
         if current_location == "patlocker":
             imagebutton:
                 idle "images/ui/arrow_idle.png"
@@ -421,7 +550,21 @@ screen detective_hud():
                 xpos 50 ypos 700 
                 action Return("go_lockers")
                 tooltip "Return"
-
+            if not evidence_taken["knife"]:
+                imagebutton:
+                    idle "images/cs/bf.png"
+                    hover "images/cs/bfh.png"
+                    focus_mask True
+                    at transform:
+                        nearest True
+                        zoom 1
+                    xpos 0 ypos 0
+                    action [
+                        Function(add_item, "Butterfly Knife", "This was found hidden inside Toph’s locker. Despite the stains, the handle is unnervingly spotless—wiped clean, as if someone deliberately erased every trace of their fingerprints.", "images/cs/bficon.png"),
+                        SetDict(evidence_taken, "knife", True),
+                        Show("item_get_message", message="You found a Butterfly Knife.")
+                    ]
+                    tooltip "Butterfly Knife"
 transform hud_zoom(norm, hov):
     on idle:
         linear 0.1 zoom norm
@@ -469,7 +612,7 @@ screen inventory_screen():
                 spacing 20
                 if selected_item:
                     add Transform(selected_item.image, fit="contain"):
-                        xysize (400, 400)
+                        xysize (590, 350)
                         xalign 0.5
                     text selected_item.name size 30 color "#4A90E2"
                     text selected_item.description size 23
@@ -569,10 +712,10 @@ screen journal_screen():
                     for entry in current_person.descriptions: 
                         if "|" in entry:
                             $ header, body = entry.split("|")
-                            text header size 22 bold True color "#4A90E2"
-                            text body size 18 color "#333"
+                            text header size 25 color "#4A90E2"
+                            text body size 20 color "#333"
                         else:
-                            text entry size 18 color "#333"
+                            text entry size 20 color "#333"
         else:
             # THE KILLER LIST
             vpgrid:
@@ -665,7 +808,7 @@ label start:
             if not hasattr(person, 'descriptions'):
                 person.descriptions = []
 
-    $ add_suspect("Pat (Victim)", "Found in the storage room. Cause of death unknown.", "images/suspects/pat_dead.png")
+    $ add_suspect("Pat (Victim)", "Found in the storage room. Cause of death unknown.", "images/characters/pat.png")
 
     scene black with dissolve
     show headphones:
@@ -829,7 +972,7 @@ label tutorial:
     show image "images/ui/bag_icon.png" as icon_inv at move_to_hud_left
     s "System: Go to your inventory."
 
-    $ add_item("Crime Photo", "A photo of the 6th floor storage room.", "images/items/photo.png")
+    $ add_item("Crime Photo", "A photo of the 6th floor storage room.", "images/crime_scene.png")
     s "{u}Crime Photo{/u} added to your Bag."
 
     call screen inventory_screen
@@ -844,9 +987,9 @@ label tutorial:
     show image "images/ui/journal_icon.png" as icon_jou at move_to_hud_right
     s "System: Check your journal."
 
-    $ add_suspect("Dan (Janitor)", "The man who found the body. Seems shaken.", "images/suspects/dan_port.png")
+    $ add_suspect("Dan (Janitor)", "The man who found the body. Seems shaken.", "images/characters/dan.png")
     # Starting clue:
-    $ journal_list[0].descriptions.append("Observation|He was trembling when he spoke to the Captain.")
+    $ journal_list[1].descriptions.append("Observation|He was trembling when he spoke to the Captain.")
     s "New Suspect added to Journal: {u}Dan.{/u}"
 
     call screen journal_screen
@@ -856,8 +999,6 @@ label tutorial:
     hide icon_jou
     hide icon_inv
 
-    # --- FINAL STEP ---
-    # Now show the actual HUD screen which has the real buttons
     $ show_hud = True
     show screen detective_hud
     s "System: You are ready to begin."
@@ -894,7 +1035,54 @@ label mhallway:
     
     if result == "go_hallway2":
         jump hallway2
+    elif result == "go_dan":
+        jump dan
+    elif result == "go_day2":
+        jump day2
     jump mhallway
+# Create a variable at the top of your script to track if you've met him
+default met_dan = False
+
+label talk_to_dan:
+    # This hides the HUD so it doesn't overlap the dialogue
+    $ show_hud = False 
+    show dan_face at Transform(ypos=0.3, zoom=1.5, xpos=0.70) with dissolve
+    if not met_dan:
+        d "P-please... I already told the Captain everything I saw."
+        mc "I'm just following up, Dan. You're the one who found the body, right?"
+        d "Yes. I was just coming in to swap the trash liners... and there she was."
+        
+        # This adds a clue to your journal automatically when you meet him
+        $ add_suspect("Dan (Janitor)", "The man who found the body. Seems shaken.", "images/suspects/dan_port.png")
+        $ met_dan = True
+    else:
+        d "I... I really want to go home, Detective. This place gives me the creeps now."
+
+    # --- Choice Menu ---
+    menu:
+        "Ask about the foaming mouth":
+            mc "Did you notice anything strange about her face? Like froth or foam?"
+            d "I didn't get that close! I saw the blood and... and I ran for the phone."
+            $ journal_list[1].descriptions.append("Statement|Claims he didn't look closely at the face.")
+
+        "Ask about the bruising":
+            mc "Did you see anyone else in the hallway when you arrived?"
+            d "No one. It was dead silent. Just the humming of the vending machines."
+
+        "Leave him alone":
+            mc "That's all for now, Dan. Stay close by."
+            d"I'm not going anywhere... my legs are still shaking too much."
+
+            hide dan_face with dissolve
+            jump resume_investigation
+
+    # Return to the choice menu or finish
+    jump talk_to_dan
+
+label resume_investigation:
+    $ show_hud = True
+    # This takes you back to the screen you were just on
+    call screen detective_hud
 
 label hallway2:
     play music "audio/ambiance_crime_scene_d1.mp3" loop
@@ -950,7 +1138,7 @@ label cctv_room:
     $ result = renpy.call_screen("detective_hud")
 
     if result == "solve_cctv":
-        $ my_puzzle = start_puzzle() # Create the puzzle
+        $ my_puzzle = start_puzzle()
         $ puzzle_result = renpy.call_screen("cctv_puzzle_screen", my_puzzle)
         
         if puzzle_result == "win":
@@ -987,7 +1175,7 @@ label storage_room:
         if scenario_picker1 == False:
             jump body
         elif scenario_picker1 == True:
-           pc "The CSI guys are already checking the body while you we're gone. Check other stuff incase you miss other details. They'll send what they got from the body in the 3rd Day."
+           pc "The body seems to have been taken care of by the forensic team, you'll get another chance to examine the body at a later date."
     jump storage_room
 
 label body:
@@ -999,13 +1187,13 @@ label body:
     if not seen_body:
         $ result = renpy.hide_screen("detective_hud")
         $ Pause (0.2)
-        mc "Looking at the body, so many things are happening holy pack tangina."
+        "The body of Pat is slumped against the concrete, head lolling at an unnatural angle."
+        mc "I just can't get used to this."
         $ seen_body = True
     
     window hide
 
     $ record_clue("Pat (Victim)", "Time of Death|Estimated between 3:00 AM and 4:30 AM.")
-    $ record_clue("Pat (Victim)", "Wounds|Defensive wounds found on the forearms.")
 
     $ result = renpy.call_screen("detective_hud")
     if result == "go_storage":
@@ -1022,14 +1210,29 @@ label lockers:
 
     if result == "go_stairs":
         jump stairs
+    elif result == "go_zlockers":
+        jump zlockers
+    jump lockers
+
+label zlockers:
+    play music "audio/ambiance_hallway_d1.mp3" loop
+    $ current_location = "zlockers"
+    $ show_hud = True
+    scene zlockers with fade
+
+    $ result = renpy.call_screen("detective_hud")
+
+    if result == "go_lockers":
+        jump lockers
     elif result == "go_patlocker":
         jump patlocker
-    jump lockers
+    jump zlockers
 
 label patlocker:
     play music "audio/ambiance_hallway_d1.mp3" loop
     $ current_location = "patlocker"
-    scene patlocker with fade
+    $ show_hud = True
+    scene patlocker
 
     $ result = renpy.call_screen("detective_hud")
 
@@ -1037,6 +1240,18 @@ label patlocker:
         jump lockers
     jump patlocker
 
+label confirm_next_day:
+    mc "I've gathered some leads... should I head back to the station for the night?"
+    
+    menu:
+        "Yes, proceed to the next day.":
+            mc "I hope I didn't overlook anything important in the rush."
+            $ current_day += 1
+            jump day2
+
+        "No, I need to keep looking.":
+            mc "Wait. My gut tells me there's more to see here. I should keep scanning."
+            jump mhallway
 # =========================
 # DAY 2
 # =========================
@@ -1046,5 +1261,16 @@ label day2:
     scene black with fade
     show text "{size=70}DAY 2{/size}" at truecenter
     with dissolve
+    $ current_day = 2
+    $ scenario_picker1 = True
 
     $ renpy.pause(3)
+
+    jump lockers
+
+
+
+
+# =========================
+# Day 6
+# =========================
