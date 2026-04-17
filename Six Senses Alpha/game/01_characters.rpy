@@ -1,0 +1,8 @@
+define mc = Character("Detective")
+define pc = Character("Captain", color="#4A90E2")
+define d = Character("Dan", color="#C5B358")
+define c = Character("Chandler", color="#F08080")
+define t = Character("Toph", color="#50C878")
+define a = Character("Austin", color="#9370DB")
+define op = Character("911 Operator", color="#C20101")
+define s = Character("System", color="#FFFFFF")

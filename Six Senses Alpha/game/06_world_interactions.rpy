@@ -29,8 +29,8 @@ screen mhallwayd1():
         rotate -90
         alpha 0.5
     imagebutton:
-        idle "suspects/dan.png"
-        hover "suspects/dan.png"
+        idle "characters/dan.png"
+        hover "characters/dan.png"
         focus_mask True
         at transform:
             nearest True
@@ -345,7 +345,7 @@ screen mhallwayd2():
         zoom 0.3
         rotate 190
         alpha 0.3
-    if scenario_picker1d2 or scenario_picker2d2:
+    if evidence_taken["cigarette"] or evidence_taken["knife"]:
         imagebutton:
             idle "invisible_idle"
             xysize (170, 400)
@@ -420,25 +420,43 @@ screen storage_roomd2():
             nearest True
             zoom 1
         xpos 0 ypos 0
-        action Return("go_body")
+        action Show("item_get_message", message="The body seems to have been taken care of by the forensic team. You'll get another chance to examine the body at a later date.")
         tooltip("Examine the body")
-    
-    # Crime scene revisit – cigarette clue
-    if not evidence_taken["cigarette"]:
+
+    imagebutton:
+        idle "images/ui/arrow_idle.png"
+        hover "images/ui/arrow_hover.png"
+        at transform:
+            nearest True
+            zoom 0.3
+        xpos 50 ypos 700 
+        action Return("go_hallwayd2")
+        tooltip "Exit Storage Room"
+
+    # Rubble: clickable only if not moved yet
+    if not rubble_moved:
+        imagebutton:
+            idle "images/cs/rubble1.png"
+            hover "images/cs/rubble1.png"
+            focus_mask True
+            action [SetVariable("rubble_moved", True), Show("item_get_message", message="You move the rubble aside... something glints underneath.")]
+            tooltip "Move rubble"
+    else:
+        # After moving, rubble becomes static (non‑clickable)
+        add "images/cs/rubble2.png"
+
+    # Cigarette button: visible only after rubble moved and not yet collected
+    if rubble_moved and not evidence_taken["cigarette"]:
         imagebutton:
             idle "images/cs/cigarette.png"
-            hover "images/cs/cigaretteh.png"
+            hover "images/cs/cigarette.png"
             focus_mask True
-            at transform:
-                nearest True
-                zoom 1
-            xpos 800 ypos 600
             action [
-                Function(add_item, "Half-crushed Cigarette", "Found near the original crime scene. Might have been dropped by the killer in a hurry.", "images/cs/cigarette.png"),
+                Function(add_item, "Cigarette Butt", "You found a crushed cigarette butt on the floor. The filter is still fresh, and the marks match the diameter of the burns on Pat’s skin—all that’s left is to run the fingerprints to confirm exactly whose hand was on it.", "images/cs/cigaretteicon.png"),
                 SetDict(evidence_taken, "cigarette", True),
-                Show("item_get_message", message="You found a half-crushed cigarette.")
+                Show("item_get_message", message="You found a crushed cigarette butt on the floor.")
             ]
-            tooltip "Cigarette"
+            tooltip "Take cigarette butt"
     
     # Other evidence (same as day1, but only if not already taken)
     if not evidence_taken["waterbottle"]:
@@ -559,30 +577,6 @@ screen cctv_hallwayd2():
         xpos 50 ypos 700 
         action Return("go_stairsd2")
         tooltip "Return"
-    imagebutton:
-        idle "invisible_idle"
-        hover "translucent_hover"
-        xysize (85, 700) 
-        xpos 435 ypos 250
-        action Return("go_cctv_roomd2")
-        tooltip "Go to CCTV Room"
-
-screen cctv_roomd2():
-    imagebutton:
-        idle "invisible_idle"
-        hover "translucent_hover"
-        xysize (400, 300) 
-        xpos 800 ypos 300
-        action Return("cctv_monitor")
-    imagebutton:
-        idle "images/ui/arrow_idle.png"
-        hover "images/ui/arrow_hover.png"
-        at transform:
-            nearest True
-            zoom 0.3
-        xpos 50 ypos 700 
-        action Return("go_cctv_hallwayd2")
-        tooltip "Return"
 
 screen lockersd2():
     imagebutton:
@@ -635,6 +629,7 @@ screen patlockerd2():
             action [
                 Function(add_item, "Butterfly Knife", "Found hidden inside a locker. Spotless handle – wiped clean.", "images/cs/bficon.png"),
                 SetDict(evidence_taken, "knife", True),
+                SetVariable("scenario_picker2d2", True),
                 Show("item_get_message", message="You found a Butterfly Knife.")
             ]
             tooltip "Butterfly Knife"

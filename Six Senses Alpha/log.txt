@@ -1,4 +1,4 @@
-2026-04-12 23:54:49 UTC
+2026-04-15 07:35:41 UTC
 Windows-11-10.0.26200-SP0
 Ren'Py 8.5.2.26010301
 
@@ -6,33 +6,33 @@ Six Senses
 1.7.0-Alpha
 Built at 2026-04-12 21:32:20 UTC
 
-Early init took 29 ms
-Loading error handling took 15 ms
-Loading script took 70 ms
-Loading save slot metadata took 16 ms
+Early init took 39 ms
+Loading error handling took 58 ms
+Loading script took 915 ms
+Loading save slot metadata took 104 ms
 Loading persistent took 0 ms
 Set script version to: (8, 5, 2)
-Running init code took 24 ms
-Loading analysis data took 4 ms
+Running init code took 157 ms
+Loading analysis data took 9 ms
 Analyze and compile ATL took 1 ms
-Reloading save slot metadata took 7 ms
+Reloading save slot metadata took 74 ms
 Dump and make backups took 0 ms
 Cleaning cache took 0 ms
-Making clean stores took 1 ms
+Making clean stores took 0 ms
 Initial gc took 20 ms
 DPI scale factor: 1.000000
 nvdrs: Loaded, about to disable thread optimizations.
 nvdrs: Disabled thread optimizations.
-Creating interface object took 155 ms
+Creating interface object took 180 ms
 Init translation took 0 ms
-Cleaning stores took 0 ms
-Load screen analysis took 11 ms
+Cleaning stores took 1 ms
+Load screen analysis took 15 ms
 Analyze screens took 0 ms
 Save screen analysis took 0 ms
 Save pyanalysis took 0 ms
 Save bytecode took 0 ms
-Running _start took 0 ms
-Interface start took 146 ms
+Running _start took 1 ms
+Interface start took 153 ms
 
 Initializing gl2 renderer:
 primary display bounds: (0, 0, 1920, 1080)
