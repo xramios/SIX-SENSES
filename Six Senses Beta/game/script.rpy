@@ -24,7 +24,7 @@ label start:
     play music "audio/rain.mp3"
     scene windowhome with dissolve
     
-    show text "{size=50}you wake up hazy, your phone across the room ringing endlessly{/size}" as intro1:
+    show text "{size=50}You wake up hazy. Your phone buzzes across the room—endless, insistent.{/size}" as intro1:
         xalign 0.5 yalign 0.8
     with dissolve
 
@@ -34,20 +34,23 @@ label start:
     hide intro1 with dissolve
     stop sound
 
-    show text "{size=50}you answer the call, its the chief{/size}" as intro1:
+    show text "{size=50}You answer. It's the Chief.{/size}" as intro1:
         xalign 0.5 yalign 0.8
     with dissolve
+    $ renpy.pause(1.5)
+
 
     hide intro1 with dissolve
-    pc "Detective, are you available right now?– no– it doesn't matter, come to the location i sent-ASAP"
+    pc "Detective, are you available right now? No—doesn't matter. Get to the location I sent. ASAP."
     with dissolve
 
     hide intro1 with dissolve
     window hide
 
-    show text "{size=50}groggy and confused at not even being able to answer-{/size}" as intro2:
+    show text "{size=50}Groggy and confused—you couldn't even get a word in—you grab your keys and rush out the door.{/size}" as intro3:
         xalign 0.5 yalign 0.8
     with dissolve
+    $ renpy.pause(2.0)
     
     $ renpy.pause(0.8)
     hide intro2 with dissolve
@@ -55,8 +58,7 @@ label start:
     show text "{size=50}you hurriedly grab your keys and rush out the door{/size}" as intro3:
         xalign 0.5 yalign 0.8
     with dissolve
-
-    $ renpy.pause(1.0)
+    $ renpy.pause(1.5)
     hide intro3 with dissolve
 
     scene black
@@ -131,7 +133,7 @@ label start:
         zoom 0.7
     with moveinright
     
-    pc "You’re finally here, [mc]."
+    pc "You’re finally here, Detective."
     
     pc "It’s gruesome in there... *sighs*"
     pc "But we don't have time to dawdle—so let me fill you in."
@@ -140,20 +142,19 @@ label start:
     scene prologue-call with flash
     
     op "9-1-1, what’s your emergency?"
-    
     d "Hello? M-may... may—"
 
-    pc "A call was made to 9-1-1 at 5:56 AM in the morning."
+    pc "That was Dan, the janitor. He called it in at 5:25 AM."
     
     scene prologue-call2 with dissolve
     
-    pc "The janitor, Dan-found the body in around 5:53 AM."
+    pc "The janitor, Dan-found the body in around 5:23 AM."
     
     pc "Scene’s... rough. Whoever did this didn't hold back."
 
     scene main_hallway with fade
 
-    show chief_normal at right:
+    show captain at right:
         zoom 0.7
     pc "We may not have much information, but it’s better than nothing."
 
@@ -234,7 +235,7 @@ label mhallway:
 
 label talk_to_dan:
     $ show_hud = False 
-    show dan_face at Transform(ypos=0.3, zoom=1.5, xpos=0.70) with dissolve
+    show dan_face at Transform(ypos=400, zoom=0.65, xpos=1000) with dissolve
     if not met_dan:
         d "P-please... I already told the Captain everything I saw."
         mc "I'm just following up, Dan. You're the one who found the body, right?"
@@ -318,6 +319,12 @@ label cctv_room:
     $ current_location = "cctv_room"
     scene cctv_room with fade
     $ result = renpy.call_screen("detective_hud")
+    if not seen_cctv_room_intro:
+        $ seen_cctv_room_intro = True
+        "You enter the control room. It's clean enough—organized."
+        "Now, which tape do I need…"
+        mc "You scan the labeled shelves. Two slots are empty. The labels are still there, but the tapes are gone."
+        mc "Still… would've been nice if they left a note."
     if result == "cctv_monitor":
         jump cctv_room_monitor
     elif result == "go_cctv_hallway":
@@ -365,14 +372,16 @@ label cctv_reveal_cam1:
     hide text with dissolve
     
     scene cctv_1_reveal with fade
+    $ cctv_cam1_solved = True
     "The footage shows Dan gripping Pat firmly by the hand, pulling him down the hallway with urgency."
     "Pat resists slightly, stumbling to keep up as he tries to pull back."
     "Dan doesn’t let go, tightening his grip and dragging Pat toward the storage room."
     "Without hesitation, Dan yanks the door open and pulls Pat inside. The door shuts quickly behind them."
     
     $ add_suspect("Dan (Janitor)", "Seen on CCTV leading Pat to storage room.", "images/characters/danicon.png")
-    $ record_clue("Dan (Janitor)", "Video Evidence|Camera 1 shows Dan dragging Pat into storage room against his will.")
-    
+    $ record_clue("Dan (Janitor)", "Video Evidence | Camera 1 shows Dan dragging Pat into storage room against his will.")
+    mc "The defensive bruises on Pat's forearms..."
+    mc "They align perfectly with the CCTV. That was from Dan forcefully gripping and dragging her into the storage room."
     mc "Dan lied. He said he just found the body this morning, but here he is with Pat the night before."
     
     jump cctv_room_monitor
@@ -382,25 +391,28 @@ label cctv_reveal_cam4:
     show text "{size=50}CCTV FOOTAGE - CAMERA 4{/size}" at truecenter with dissolve
     pause 1.0
     hide text with dissolve
-    
     scene cctv_4_reveal with fade
-    "You discovered CCTV footage from the night of the incident."
-    "It shows Toph stepping out of the 6th-floor elevator, rushing down the hallway."
-    "He looks anxious, checking over his shoulder several times before going out of frame."
+    $ cctv_cam4_solved = True
+    "The recording shows footage from a different camera, timestamped earlier that night."
+    "Toph waits at the elevator, rushing to get out. He looks anxious, checking over his shoulder several times before moving out of frame."
     
     $ add_suspect("Toph", "Seen on CCTV near the crime scene on the night of the incident.", "images/characters/toph.png")
-    $ record_clue("Toph", "Video Evidence|Camera 4 shows Toph exiting elevator and rushing toward storage room area, acting nervous.")
-    
-    mc "Toph was here that night. Why didn't he come forward?"
+    $ record_clue("Toph", "Video Evidence| Camera 4 shows Toph exiting elevator and rushing toward storage room area, acting nervous.")
     
     jump check_both_cctv_solved
 
 label check_both_cctv_solved:
     if cctv_cam1_solved and cctv_cam4_solved:
-        if not scenario_picker1:
+        if not scenario_picker2:
             $ scenario_picker1 = True
-            mc "I've now seen both camera feeds. This gives me a much clearer picture of what happened."
-            $ record_clue("Case Summary", "CCTV Analysis|Both cameras show Dan forcing Pat into storage room, then later Toph acting suspiciously nearby.")
+            mc "Two different cameras. Two different people."
+            mc "But what were they both doing here that night?"
+            $ add_item("CCTV Recording 1", "Dan Leading Pat to the Storage Room", "images/cs/CCTVTape.png")
+            $ evidence_taken["cctv_tape1"] = True
+            $ add_item("CCTV Recording 2", "Toph Looking Suspicious — Waiting at the Elevator", "images/cs/CCTVTape.png")
+            $ evidence_taken["cctv_tape2"] = True
+            show screen item_get_message(message="You add the 2 security tapes to your inventory.")
+            
     jump cctv_room_monitor
 
 label storage_room:
@@ -487,7 +499,7 @@ label confirm_next_day:
             jump mhallway
 
 # ============================================================================
-#                             POLICE STATION (REVIEW HUB)
+#                               DEBREIFING DAY 1
 # ============================================================================
 
 label policestation:
@@ -525,27 +537,24 @@ label policestation:
     elif scenario_picker1 and not scenario_picker2:
         mc "I couldn't examine the body - forensics had already taken it. But I pulled CCTV footages."
         if cctv_cam1_solved and cctv_cam4_solved:
-            mc "And I was able to enhance one of the feeds."
-            mc "It shows Dan leading the victim towards the storage room between 6 and 8 PM."
-            mc "There's also another suspected student appearing later in the footage."
+            mc "I was able to enhance one of the feeds."
+            mc "It shows Dan leading the victim toward the storage room between 6 and 8 PM."
+            mc "There's also another student — appears later in the footage. Looks suspicious."
+            mc "One facial match from the student database shows the student name is Toph Bernales"
             pc "So Dan and that student could also be tied in one way or another?"
             mc "Yes, sir. I've added them to the suspect list."
             if not any(s.name == "Dan (Janitor)" for s in journal_list):
                 $ add_suspect("Dan (Janitor)", "Janitor seen leading victim to storage room on CCTV.", "images/characters/danicon.png")
         # Add Unknown Student (temporary name)
-        if not any(s.name == "Unknown Student" for s in journal_list):
-            $ add_suspect("Toph Bernales", "Appears later in CCTV footage near storage room. Identity unknown.", "images/suspects/Toph.png")
-            $ record_clue("Toph Bernales", "Video Evidence|Seen on CCTV entering storage room area after Dan and victim.")
-        pc "Good work. This gives us a clearer direction for the investigation."
-        mc "What's our next move, Captain?"
-        pc "Go over the evidence again—check if she made any calls or sent messages during that time."
-        pc "And have the DNA tested too."
+        if not any(s.name == "Toph" for s in journal_list):
+            $ add_suspect("Toph", "Appears later in CCTV footage near storage room. Identity unknown.", "images/suspects/Toph.png")
+            $ record_clue("Toph", "Video Evidence|Seen on CCTV entering storage room area after Dan and victim.")
         if evidence_taken["waterbottle"]:
             mc "I did find a crushed water bottle near the scene."
         if evidence_taken["powder"]:
-                mc "There was also synthetic powder. Could be related."
-        if evidence_taken["powder"] and not evidence_taken["waterbottle"]:
-            mc "Found synthetic drugs in the storage room."
+            mc "There was also synthetic drugs. Could be related."
+        if evidence_taken["powder"] and evidence_taken["waterbottle"]:
+            mc "Both items may have been used on the victim, i'll know once the autopsy results are in."
         if evidence_taken["patbag"]:
             mc "Pat's bag was ransacked – someone was looking for something."
         if evidence_taken["patphone"]:
@@ -554,7 +563,10 @@ label policestation:
             mc "Her ID was bloody and tossed aside."
         if evidence_taken["knife"]:
             mc "I also found a butterfly knife hidden in a locker. Handle was wiped clean."
-
+        pc "Good work. This gives us a clearer direction."
+        mc "What's our next move, Captain?"
+        pc "Go over the evidence again—check if she made any calls or sent messages during that time."
+        pc "And have the DNA tested too."
     pc "Alright. Log everything and get some rest. Tomorrow we dig deeper."
 
     menu:
@@ -577,9 +589,13 @@ label day2intro:
     scene black with fade
     pause 1.0
 
+    show text Text("CHAPTER 2: SMELL", size=70, color="#FFFFFF") at truecenter with dissolve
+    pause 1.0
     play sound "audio/announcement.mp3"
     s "In light of the recent incident, all classes will remain asynchronous until further notice."
     s "Entry into restricted areas is strictly forbidden. Students found in violation will face immediate disciplinary consequences."
+    mc "Right… asynchronous. That explains why it's so empty."
+    mc "Still feels strange, though."
     show text Text("Sense Activated — SMELL", size=70, color="#FF00C8") at truecenter with dissolve
     pause 1.0
     jump mhallwayd2
@@ -674,7 +690,11 @@ label storage_roomd2:
     scene storage_roomd2 with fade
 
     if not evidence_taken["cigarette"]:
-        "The cigarette odor is thick in here – someone has been smoking inside the crime scene."
+        "You step into the room — empty. Too empty."
+        mc "The body is gone. The forensic team worked fast."
+        "You kneel down, running your fingers over the scuff marks. Someone fought hard here."
+        "Then you notice it..."
+        mc "Something smells off. Not just the metallic ghost of old blood — something else. Chemical. Sour."
     if evidence_taken["cigarette"]:
         $ cigarette_smell_inside_taken = True
         mc "Finally… a lead"
@@ -725,8 +745,16 @@ label patlockerd2:
     scene patlocker
     mc "This locker belongs to a student named Toph Bernales."
     if not evidence_taken["knife"]:
-        "The stench of old blood is overwhelming here – something inside has been soaked."
-        "You open Toph Bernales' locker and find a butterfly knife, the handle wiped clean."
+        "The blade is still stained — dark, dried blood clings to the steel. The handle, however, has been wiped clean."
+        "You open Toph Bernales' locker and find a butterfly knife, no prints. Someone knew what they were doing."
+    if evidence_taken["knife"]:
+        mc "…This feels too easy."
+        "Something's off. Like eyes on your back."
+        "The hair on your neck stands up."
+        "You turn — just in time to catch a glimpse of a student bolting down the hall. Footsteps echo off the tile."
+        mc "Hey — !"
+        mc "Gone. Just like that."
+        "You're left standing there, heart pounding, wondering what their deal was."
     $ result = renpy.call_screen("detective_hud")
     if result == "go_lockersd2":
         jump lockersd2
@@ -761,10 +789,12 @@ label policestation2:
         mc "I’ll try to bypass it, but it’ll take time."
         pc "Then don’t wait on it. What else?"
         mc "There’s also a cigarette butt and butterfly knife we almost missed. Both could give us DNA."
-        pc "Good Catch"
-        pc"That’s our break. If there’s DNA on those, we’re getting names. Get it checked immediately"
-        mc "What's our next move?"
-        pc "Go over the evidence again—check if she made any calls or sent messages during that time. And have the DNA from both items tested too."
+        pc "Good Catch. A butterfly knife… in Toph Bernales' locker? Either he's careless… or someone wants him to look that way."
+        mc "While I was checking Toph Bernales' locker someone did ran away from the scene."
+        mc "He was already gone the moment I realized someone was there."
+        mc "If it was Toph Bernales why would he put something the police would easily find?"
+        mc "We didn't check all personal items thoroughly… and we haven't confirmed any connections to potential suspects yet."
+        pc "Don't lock onto Bernales just yet. Verify everything. If this is planted, we're being played."
     elif evidence_taken["cigarette"] and not evidence_taken["knife"]:
         pc "You’re back. You look worried. So… what do we have?"
         mc "We followed up on yesterday’s findings. I started tracing the victim’s phone but the phone was locked."
@@ -776,16 +806,27 @@ label policestation2:
         pc "Doesn’t mean it’s our suspect yet. Could belong to anyone who’s been through that area."
         pc "We didn’t check every detail thoroughly… and we still don’t have confirmed connections between the suspects."
         pc "Don’t lock onto it just yet. Verify everything. If it’s relevant, it’ll lead us somewhere. If not, it’s just noise."
+    elif evidence_taken["knife"] and not evidence_taken["cigarette"]:
+        pc "You’re back. You look worried. So… what do we have?"
+        mc "We followed up on yesterday’s findings. I started tracing the victim’s phone but the phone was locked."
+        pc "Of course it is. Any way around it?"
+        mc "I’ll try to bypass it, but it’ll take time."
+        pc "Then don’t wait on it. What else?"
+        pc "Good Catch. A butterfly knife… in Toph Bernales' locker? Either he's careless… or someone wants him to look that way."
+        mc "While I was checking Toph Bernales' locker someone did ran away from the scene."
+        mc "He was already gone the moment I realized someone was there."
+        mc "If it was Toph Bernales why would he put something the police would easily find?"
+        mc "We didn't check all personal items thoroughly… and we haven't confirmed any connections to potential suspects yet."
+        pc "Don't lock onto Bernales just yet. Verify everything. If this is planted, we're being played."
     elif not evidence_taken["cigarette"] and evidence_taken["knife"]:
         pc "You’re back. You look worried. So… what do we have?"
         mc "We followed up on yesterday’s findings. I started tracing the victim’s phone but the phone was locked."
         pc "Of course it is. Any way around it?"
         mc "I’ll try to bypass it, but it’ll take time."
         pc "Then don’t wait on it. What else?"
-        mc "We recovered a butterfly knife from Toph Bernales’ locker. It could still have DNA on it."
-        pc "Good catch. A butterfly knife… in Toph Bernales’ locker? Either he’s careless… or someone wants him to look that way."
         mc "We didn’t check all personal items thoroughly… and we haven’t confirmed any connections to potential suspects yet."
-        pc "Don’t lock onto Bernales just yet. Verify everything. If this is planted, we’re being played."
+    mc "What's our next move, Captain?"
+    pc "Go over the evidence again — check if she made any calls or sent messages during that time. And have the DNA from both items tested too."
     pc "Alright. Log everything and get some rest. Tomorrow we dig deeper."
     scene black with dissolve
     pause 2.0
@@ -816,39 +857,70 @@ label day3intro:
     show captain at right:
         zoom 0.7
     with moveinright
-    pc "…"
-    mc "…"
-    
-    # Conditional logic if player examined the body on Day 1
-    if scenario_picker2:
+
+    if scenario_picker1:
+        pc "The forensic team saw the cctv footage and got a hold of 2 new cctv tapes you should take a look at."
+        mc "Good. I'll review them immediately."
+    elif scenario_picker2:
         pc "The forensic team saw the cctv footage and got a hold of 4 different cctv tapes you should take a look at."
         mc "Good. I'll review them immediately."
-        $ record_clue("Case Summary", "Evidence Updates|Forensics recovered 4 CCTV tapes from the crime scene.")
-    
+    show text "{size=70}Sense Activated — TOUCH{/size}" at truecenter with dissolve
+    pause 2.0
+    hide text with dissolve
     pc "The evidence room is ready. Lay everything out. Maybe seeing it all together will spark something."
     hide captain with moveoutright
-    jump evidence_room
+    jump evidence_room_hub
 
-label evidence_room:
-    $ current_location = "evidence_room"
-    scene evidence_room_bg with fade
-    
-    "System" "You enter the evidence room."
-    "System" "Your bag hangs open. You lift it and plop it on the floor below the corkboard."
-    "System" "Photos, bagged items, notes — it's all still inside, waiting to be sorted."
-    "System" "Three avenues stand out."
-    "System" "You can examine trace evidence, review CCTV tapes, or attempt to hack the victim's phone."
-    "System" "You may now interact with the evidence."
-    
-    $ show_hud = True
-    call screen detective_hud
-
-# --- Day 3 Interaction Hub ---
 label evidence_room_hub:
     $ current_location = "evidence_room"
     scene evidence_room_bg with fade
+    
+    if not seen_evidence_room_intro:
+        $ seen_evidence_room_intro = True
+        "You enter the evidence room."
+        "Your bag hangs open. You lift it and plop it on the floor below the corkboard."
+        "Photos, bagged items, notes — it's all still inside, waiting to be sorted."
+        "You can choose to click the computer to check the tapes, sort through the trace evidence in your bag, or click the corkboard to check your journal."
+        "You may now interact with the evidence."
+    
     $ show_hud = True
-    call screen detective_hud
+    call screen evidence_room_d3
+
+# --- Trace Evidence Inspection ---
+label inspect_item_logic:
+    $ show_hud = False
+    scene black with dissolve
+    
+    if item_to_inspect == "ID":
+        "Pat's ID lace lies crumpled in a corner, its fabric roughed up and stained with fresh blood."
+        "It looks less like something misplaced and more like it was forcibly torn off and discarded — but whether it happened during a struggle or after the fact is still unclear."
+        
+    elif item_to_inspect == "Bag":
+        "A discarded shoulder bag now in the evidence room, its zipper left wide open and lining still partially turned inside out."
+        "The interior is completely empty, confirming it was thoroughly searched — but whether anything was actually taken, or what the intruder was looking for, remains unclear."
+        
+    elif item_to_inspect == "Drugs":
+        "A small bag of high-grade synthetic drugs found on the floor, carelessly left behind."
+        "Their presence raises serious suspicion, but it's unclear whether they belonged to the victim, the perpetrator, or someone else."
+        
+    elif item_to_inspect == "Half-Empty Bottle":
+        "An empty bottle found among the scattered belongings, likely discarded during a hurried search."
+        "It could have been used to administer the substances found near the body — but whether it played a direct role or is simply part of the mess left behind remains uncertain."
+        
+    elif item_to_inspect == "Cigarette Butt":
+        "A crushed cigarette butt recovered from the floor, its filter still fresh and marked with clear fingerprints."
+        "The size and shape match the burns found on Pat's skin, suggesting a possible link — but whether it directly ties to the suspect or was left behind unintentionally remains uncertain."
+        
+    elif item_to_inspect == "Butterfly Knife":
+        "A butterfly knife found inside Toph's locker, its surface wiped clean of fingerprints but still bearing faint traces of dried blood along the blade."
+        "The contrast feels unsettling — careful enough to remove identity, but not thorough enough to erase everything — leaving it unclear whether it was hidden in haste or deliberately planted to confuse the investigation."
+        
+    elif item_to_inspect == "Phone":
+        jump phone_interaction
+        
+    else:
+        "You examine the evidence closely, but nothing new stands out."
+
     jump evidence_room_hub
 
 # --- Phone Messages ---
@@ -902,16 +974,15 @@ label phone_app_bank:
     scene black with dissolve
     "System" "You opened the banking app gallery."
     
-    scene phone_bank_toph_chandler with dissolve # Replace with your actual image
-    "System" "A screenshot of Toph sending Chandler a bank transfer."
-    pause
-    
-    scene phone_bank_toph_pat with dissolve # Replace with your actual image
+    scene phone_bank_toph_pat with dissolve
     "System" "A screenshot of Toph sending Pat a bank transfer."
     pause
     
-    $ record_clue("Toph", "Financial|Sent bank transfers to both Pat and Chandler.")
-    $ record_clue("Chandler", "Financial|Received a bank transfer from Toph.")
+    mc "Toph was definitely paying Pat. This confirms the extortion messages."
+    
+    # Record only the Pat transfer here
+    $ record_clue("Toph", "Financial (Phone)|Sent a bank transfer to Pat.")
+    
     jump phone_unlocked_hub
 
 # --- CCTV Tapes ---
@@ -919,44 +990,105 @@ label cctv_tape_view:
     $ show_hud = False
     scene black with fade
     
-    if tape_num == 1:
-        show text "{size=50}CCTV: DAN LEADING PAT TO THE STORAGE ROOM{/size}" at truecenter with dissolve
-        pause 2.0
-        scene cctv_dan_pat with fade
-        "The footage shows Dan gripping Pat firmly by the hand, pulling him down the hallway with urgency."
-        "Pat resists slightly, stumbling to keep up as he tries to pull back."
-        "Dan doesn’t let go, tightening his grip and dragging Pat toward the storage room."
-        "Without hesitation, Dan yanks the door open and pulls Pat inside. The door shuts quickly behind them."
-        $ record_clue("Dan (Janitor)", "CCTV Tape 1|Forcibly dragged Pat into the storage room.")
+    # ==========================================
+    # PATH: CHECKED CCTV ROOM FIRST (2 Tapes)
+    # ==========================================
+    if scenario_picker1 and not scenario_picker2:
+        if tape_num == 1:
+            show text "{size=50}CORRUPTED TAPE: CHANDLER ON CALL{/size}" at truecenter with dissolve
+            pause 2.0
+            scene cctv_chandler with fade # Note: You can add a glitch effect here if you have one
+            "Security recording shows heavy corruption, with intermittent frame loss and visual tearing."
+            "In the clearer fragments, a figure consistent with Chandler Soriano is seen in the hallway, appearing to be on a call."
+            "Portions of the sequence are missing, but the subject is later observed exiting the frame without looking back."
+            "Due to data degradation, the identity of the person on the call and full movement continuity cannot be confirmed."
+            $ add_suspect("Chandler", "Seen on corrupted CCTV near the crime scene.", "images/suspects/chandler.png")
+            $ record_clue("Chandler", "CCTV Tape 1|Corrupted footage shows him on a call in the hallway before leaving the frame.")
+            s "Clue Recorded."
 
-    elif tape_num == 2:
-        show text "{size=50}CCTV: CHANDLER ON CALL{/size}" at truecenter with dissolve
-        pause 2.0
-        scene cctv_chandler with fade
-        "The footage shows Chandler exiting the area, walking out of frame without looking back."
-        "Moments later, Austin slowly leans out from behind the corner, cautiously peeking in the direction Chandler went."
-        "He scans the hallway, lingering for a second as if making sure it’s clear, before stepping out slightly further, still keeping part of his body hidden."
-        $ add_suspect("Chandler", "Seen on CCTV near the crime scene.", "images/suspects/chandler.png")
-        $ add_suspect("Austin", "Seen tailing Chandler on CCTV.", "images/suspects/austin.png")
-        $ record_clue("Chandler", "CCTV Tape 2|Seen leaving the hallway area while on a phone call.")
+        elif tape_num == 2:
+            show text "{size=50}CORRUPTED TAPE: AUSTIN PEEKING{/size}" at truecenter with dissolve
+            pause 2.0
+            scene cctv_austin with fade
+            "The footage shows Chandler exiting the area, walking out of frame without looking back."
+            "Moments later, Austin slowly leans out from behind the corner, cautiously peeking in the direction Chandler went."
+            "He scans the hallway, lingering for a second as if making sure it’s clear, before stepping out slightly further, still keeping part of his body hidden."
+            $ add_suspect("Austin", "Seen tailing Chandler on CCTV.", "images/suspects/austin.png")
+            $ record_clue("Austin", "CCTV Tape 2|Seen peeking around the corner after Chandler leaves.")
+            s "Clue Recorded."
 
-    elif tape_num == 3:
-        show text "{size=50}CCTV: AUSTIN PEEKING{/size}" at truecenter with dissolve
-        pause 2.0
-        scene cctv_austin with fade
-        "The footage shows Chandler exiting the area, walking out of frame without looking back."
-        "Moments later, Austin slowly leans out from behind the corner, cautiously peeking in the direction Chandler went."
-        "He scans the hallway, lingering for a second as if making sure it’s clear, before stepping out slightly further, still keeping part of his body hidden."
-        $ record_clue("Austin", "CCTV Tape 3|Cautiously tracking Chandler's movements.")
+    # ==========================================
+    # PATH: CHECKED THE BODY FIRST (4 Tapes)
+    # ==========================================
+    elif scenario_picker2:
+        if tape_num == 1:
+            show text "{size=50}CORRUPTED TAPE: DAN LEADING PAT{/size}" at truecenter with dissolve
+            pause 2.0
+            scene corr_cctv_dan with fade
+            "Security footage recovered from the camera shows partial visual data of the corridor leading to the storage room."
+            "The recording is corrupted and intermittently fragmented, with missing frames and visual distortion."
+            "Within the salvageable segments, a figure consistent with Dan is seen moving toward the storage room."
+            $ add_suspect("Dan (Janitor)", "Janitor seen leading victim to storage room on CCTV.", "images/characters/danicon.png")
+            $ record_clue("Dan (Janitor)", "CCTV Tape 1|Corrupted footage shows Dan moving toward the storage room.")
+            s "Clue Recorded."
+        elif tape_num == 2:
+            show text "{size=50}CORRUPTED TAPE: CHANDLER ON CALL{/size}" at truecenter with dissolve
+            pause 2.0
+            scene cctv_chandler with fade
+            "Security recording shows heavy corruption, with intermittent frame loss and visual tearing."
+            "In the clearer fragments, a figure consistent with Chandler Soriano is seen in the hallway, appearing to be on a call."
+            "Portions of the sequence are missing, but the subject is later observed exiting the frame without looking back."
+            "Due to data degradation, the identity of the person on the call and full movement continuity cannot be confirmed."
+            $ add_suspect("Chandler", "Seen on corrupted CCTV near the crime scene.", "images/suspects/chandler.png")
+            $ record_clue("Chandler", "CCTV Tape 2|Corrupted footage shows him on a call in the hallway before leaving the frame.")
+            s "Clue Recorded."
 
-    elif tape_num == 4:
-        show text "{size=50}CCTV: TOPH AT ELEVATOR{/size}" at truecenter with dissolve
-        pause 2.0
-        scene cctv_toph_elevator with fade
-        "The footage shows Toph suspiciously waiting inside the elevator while holding his phone."
-        $ record_clue("Toph", "CCTV Tape 4|Seen nervously waiting in the elevator.")
+        elif tape_num == 3:
+            show text "{size=50}TAPE: AUSTIN PEEKING{/size}" at truecenter with dissolve
+            pause 2.0
+            scene cctv_austin with fade
+            "The footage shows Chandler exiting the area, walking out of frame without looking back."
+            "Moments later, Austin slowly leans out from behind the corner, cautiously peeking in the direction Chandler went."
+            "He scans the hallway, lingering for a second as if making sure it’s clear, before stepping out slightly further, still keeping part of his body hidden."
+            mc "Ahhh, so this was one of the missing tapes."
+            $ add_suspect("Austin", "Seen tailing Chandler on CCTV.", "images/suspects/austin.png")
+            $ record_clue("Austin", "CCTV Tape 3|Cautiously tracking Chandler's movements.")
+            s "Clue Recorded."
+
+        elif tape_num == 4:
+            show text "{size=50}TAPE: TOPH AT ELEVATOR{/size}" at truecenter with dissolve
+            pause 2.0
+            scene cctv_toph with fade
+            "The tape shows Toph suspiciously waiting inside the elevator while holding his phone."
+            mc "And this must be the other one. Toph, waiting around like he's got somewhere else to be — or someone to meet."
+            $ add_suspect("Toph", "Seen on CCTV near the crime scene on the night of the incident.", "images/characters/toph.png")
+            $ record_clue("Toph", "CCTV Tape 4|Seen nervously waiting in the elevator.")
+            s "Clue Recorded."
 
     pause 1.0
+    jump computer_access
+
+# --- GMAIL: RECOVERED GCASH LOGS ---
+label day3_gmail_review:
+    $ show_hud = False
+    scene windows_bg with dissolve
+    
+    s "System: You open the Email client."
+    
+    "There is a new message from the Cyber Forensics Division."
+    s "SUBJECT: Recovered Transaction Logs\nMESSAGE: Detective, we managed to pull an external GCash transaction log linked to Toph Bernales's account from the night of the incident. See attached."
+    
+    scene phone_bank_toph_chandler with dissolve
+    s "System: An image of a GCash transfer."
+    s "System: Toph sent a 3K bank transfer to Chandler."
+    pause
+    
+    mc "Toph sent Chandler money right around the time of the incident."
+    mc "Was he paying him off? Or was Chandler extorting him too?"
+
+    $ record_clue("Toph", "Financial (Email)|Sent a 3K bank transfer to Chandler on the night of the murder.")
+    $ record_clue("Chandler", "Financial (Email)|Received a 3K bank transfer from Toph.")
+
     jump computer_access
 
 label precinctd3:
@@ -966,8 +1098,7 @@ label precinctd3:
     
     $ show_hud = True
     call screen detective_hud
-    
-    # Safety loop in case the player closes a menu here
+
     jump precinctd3
 
 label confirm_next_day3:
@@ -1001,30 +1132,111 @@ label transition_to_day4:
     jump day4intro
 
 # ============================================================================
-#                                   Day 4
+#                                   DAY 4
 # ============================================================================
-
 label day4intro:
     $ current_day = 4
     scene black with fade
     pause 1.0
 
-    # You can change the Sense here to whatever fits Day 4!
-    show text "{size=70}Day 4{/size}" at truecenter with dissolve
+    play sound "audio/sfx.mp3" # Replace with your preferred text flash SFX
+    show text "{size=70}CHAPTER 4: TASTE{/size}" at truecenter with dissolve
     pause 2.0
     hide text with dissolve
 
     scene police_station with fade
     play music "audio/station_ambiance.mp3" loop fadein 1.0
     
-    "You arrive at the precinct early the next morning."
     show captain at right:
         zoom 0.7
     with moveinright
+
+    pc "Detective. The lab just sent over the autopsy and the DNA evidence findings."
+    pc "They're uploaded to your computer in the evidence room. Review them immediately."
+    mc "Understood, Captain."
     
-    pc "Morning, Detective. Tell me you found something solid in those phone logs and tapes."
-    mc "I did, Captain. We have enough to start asking some very difficult questions."
+    hide captain with moveoutright
+    jump evidence_room_hub
+
+label day4_evidence_review:
+    $ show_hud = False
+    scene windows_bg 
     
+    # --- AUTOPSY REPORT ---
+    s "System: You open the Autopsy Report."
+    show autopsy_document:
+        zoom 0.40
+        xalign 0.25 yalign 0.5
+    show autopsy_picture:
+        zoom 0.40
+        xalign 0.75 yalign 0.5
+    with dissolve
+    pause 2.0
+    
+    mc "So… multiple stab wounds. Chest, torso, abdomen. Massive internal bleeding did the job."
+    mc "Defensive wounds on the forearms. She tried to fight back."
+    mc "Neck bruising… inconclusive. Strangulation? Or just from being dragged?"
+    mc "Cigarette burn on the wrist. Deliberate. Someone held it there."
+    mc "And fractured ribs."
+    mc "This wasn't quick. She suffered."
+
+    # Update Journal for Pat
+    $ record_clue("Pat (Victim)", "Autopsy|Multiple stab wounds, defensive forearm bruises, neck contusions, fractured ribs, intentional cigarette burn.")
+
+    scene windows_bg with dissolve
+    
+    # --- EVIDENCE FINDINGS ---
+    s "System: You open the Evidence Findings."
+    
+    # Show the forensic document in the center
+    show forensic_document at truecenter:
+        zoom 0.40
+    with dissolve
+    
+    s "{b}Cigarette Butt{/b}\nCrushed cigarette butt, filter intact and still relatively fresh. Latent fingerprint impressions are present on the surface and are preliminarily matched to Chandler Soriano, pending full forensic confirmation."
+    s "Trace biological material is present on the filter, yielding an unknown saliva DNA profile that does not correspond to Chandler in the current reference database."
+    s "Burn characteristics and diameter are consistent with the circular thermal injury observed on the decedent's left wrist. Despite these correlations, the presence of mixed biological evidence prevents definitive attribution, leaving questions regarding handling sequence, possible transfer, or secondary contact unresolved."
+    
+    s "{b}Butterfly Knife{/b}\nButterfly knife presented for examination. Visible blood staining present along the blade. DNA analysis confirms the blood is consistent with the victim, Pat Estacio. No identifiable latent fingerprints were recovered from the surface, suggesting the weapon was wiped prior to examination."
+    
+    s "{b}Drugs{/b}\nA small bag of high-grade synthetic drugs recovered from the floor, carelessly left behind. Latent fingerprints recovered from the bag are preliminarily matched to Toph Bernales. The residue around the victim's mouth suggests the contents may have been forced into her — not taken willingly."
+    
+    s "{b}Half-Empty Plastic Bottle{/b}\nAn empty bottle found among the scattered belongings, likely discarded during a hurried search. Latent fingerprints recovered from the bottle are preliminarily matched to Toph Bernales. The bottle could have been used to wash down the drugs — or force her to swallow them."
+
+    scene black with dissolve
+    s "System: You close the file. The taste stays with you."
+    
+    mc "Chandler's prints are on the cigarette — but the DNA isn't his. Someone else had it in their mouth."
+    mc "The knife was wiped clean."
+    mc "You can wipe away prints. You can't wipe away a taste."
+
+    # --- ESTABLISHING SUSPECT CONNECTIONS ---
+    # These journal updates explicitly link the suspect to their inflicted damage based on your scripts!
+    
+    $ record_clue("Dan (Janitor)", "Connection (Restraint)|CCTV footage shows him forcibly dragging Pat to the room. Matches the defensive forearm bruises and inconclusive neck contusions found in autopsy.")
+    
+    $ record_clue("Chandler", "Connection (Burn)|Fingerprints found on the crushed cigarette used to burn Pat's wrist. The unknown saliva DNA suggests the cigarette was shared or transferred.")
+    
+    $ record_clue("Toph", "Connection (Drugs)|Fingerprints match the drug bag and water bottle. Residue on Pat's mouth implies he forced her to ingest the synthetic drugs.")
+    
+    $ record_clue("Austin", "Connection (Stalking)|CCTV confirms he was cautiously stalking Chandler and was present in the hallway near the crime scene.")
+
+    pause 1.0
+    mc "I have what I need. It's time to bring them in."
+
+label confirm_next_day4:
+    $ show_hud = False
+    mc "I've reviewed the Autopsy and DNA Findings from the lab tech. That might be all I can do for today."
+    
+    menu:
+        "Call it a night and head home.":
+            mc "I need to rest. Tomorrow is going to be a long day."
+            jump day5intro
+            
+        "I need to keep reviewing.":
+            mc "Hold on, let me double-check the files just in case."
+            jump precinctd3
+
 # ============================================================================
 #                                   DAY 5
 # ============================================================================
@@ -1034,25 +1246,79 @@ label day5intro:
     scene black with fade
     pause 1.0
 
-    show text "{size=70}Day 5{/size}" at truecenter with dissolve
+    play sound "audio/sfx.mp3" 
+    show text "{size=70}CHAPTER 5: HEARING{/size}" at truecenter with dissolve
     pause 2.0
     hide text with dissolve
 
     scene police_station with fade
     play music "audio/station_ambiance.mp3" loop fadein 1.0
+
+    "Most of the evidence has been reviewed."
     
+    "Your phone buzzes."
+
+    s "TECHNICAL ANALYST (over phone): Warrant went through. Two call logs — Pat and Toph, Toph and Dan. Both from the night of the incident. Took a while, but they're clean now. Listen when you can."
+
+    mc "Got it. Thanks."
+    "You hang up."
+
     show captain at right:
         zoom 0.7
     with moveinright
-    
-    pc "Alright, Detective. We pulled them all in."
-    pc "Dan, Toph, Austin, and Chandler. They're sitting in the interrogation room right now."
-    pc "Don't let them off easy. We need answers."
-    
+
+    pc "Suspects are in holding. I need you in interrogation — now."
+    pc "Don't keep them waiting."
+
     hide captain with moveoutright
-    
+    "He walks off."
+
+    jump day5_choice
+
+label day5_choice:
+    menu:
+        "Listen to the recovered call logs first.":
+            jump day5_call_logs
+            
+        "Proceed directly to interrogation.":
+            jump interrogation_hub
+
+label day5_call_logs:
     scene black with dissolve
-    s "System: You step into the interrogation room."
+    "You put your headphones on and play the first audio file."
+
+    # --- Call Log 1 ---
+    show text "{size=50}CALL LOG: PAT & TOPH{/size}" at truecenter with dissolve
+    pause 2.0
+    hide text with dissolve
+
+    "The audio is grainy, but Pat's voice is clear, panicked but aggressive."
+    "Pat" "I'm not playing around, Toph. You bring the money, or I'm going to your coach. Your dad too."
+    "Toph" "(Muffled) Pat, wait... don't do this. I don't have that kind of cash on me!"
+    "Pat" "Figure it out! Tonight, or it's over for you."
+    "System" "The call abruptly ends."
+    
+    $ record_clue("Toph", "Audio Evidence|Call log confirms Pat was actively extorting him for money on the night of the murder.")
+
+    pause 1.0
+
+    # --- Call Log 2 ---
+    show text "{size=50}CALL LOG: TOPH & DAN{/size}" at truecenter with dissolve
+    pause 2.0
+    hide text with dissolve
+
+    "The second recording starts. Toph's voice is shaking this time. Dan's voice is low, hushed."
+    "Toph" "Dan? Are you there? She's out of control. I don't know what to do."
+    "Dan" "(Whispering) Calm down. Just meet me on the 6th floor. I can handle her. Just get her to the hallway."
+    "Toph" "Are you sure? If she screams—"
+    "Dan" "She won't. Just do your part."
+    
+    $ record_clue("Dan (Janitor)", "Audio Evidence|Call log between him and Toph. Dan told Toph to bring Pat to the 6th floor, stating he could 'handle her'.")
+    $ record_clue("Toph", "Audio Evidence|Conspired with Dan over the phone to corner Pat on the 6th floor.")
+
+    "You take off your headphones. The conspiracy is undeniable now."
+    mc "Dan wasn't just a bystander. Toph brought her right to him."
+    pause 1.0
     
     jump interrogation_hub
 
@@ -1066,11 +1332,12 @@ label interrogation_hub:
 #                        DAN'S INTERROGATION
 # -----------------------------------------------------------
 label interrogate_dan:
-    scene interrogation_bg with dissolve # Replace with your BG
+    scene interrogation_bg with dissolve
     show dan_face at center
     
-    s "System: You step into the interrogation."
-    s "System: Choose your first question."
+    s "System: You step into the interrogation room. The door clicks shut behind you."
+    mc "Let's begin. State your full name, age, and role at the university."
+    d "Dan… Danielle Bautista. I'm a janitor. I've been here two years."
     
     $ q1 = False
     $ q2 = False
@@ -1567,179 +1834,87 @@ label chapter6:
     pc "All suspects have been interrogated. The decision is yours now."
     pc "Get it wrong, and the guilty walks free."
 
-    # --- POINT CALCULATION SYSTEM ---
+    # Call the new interactive screen
+    call screen final_accusation
+
+label evaluate_final_accusation:
     python:
-        toph_pts = 0
-        chandler_pts = 0
-        austin_pts = 0
-        dan_pts = 0
+        # 1. Did the player mark everyone as a Suspect?
+        all_suspects = (end_dan_status == "Suspect" and end_toph_status == "Suspect" and end_austin_status == "Suspect" and end_chandler_status == "Suspect")
 
-        # TOPH POINTS
-        if evidence_taken.get("powder", False): toph_pts += 5
-        if has_clue("Toph", "Tape 4"): toph_pts += 10
-        if evidence_taken.get("cigarette", False): toph_pts += 20
-        if evidence_taken.get("knife", False): toph_pts += 20
-        if has_clue("Toph", "extorting"): toph_pts += 10
-        if has_clue("Toph", "Financial"): toph_pts += 5
+        # 2. Check if the assigned crimes match the TRUTH
+        dan_correct = (end_dan_status == "Suspect" and end_dan_crime == "Unlawful Restraint")
+        toph_correct = (end_toph_status == "Suspect" and end_toph_crime == "Drug Distribution")
+        austin_correct = (end_austin_status == "Suspect" and end_austin_crime == "Stalking")
+        chandler_correct = (end_chandler_status == "Suspect" and end_chandler_crime == "Murder")
 
-        # CHANDLER POINTS
-        if has_clue("Chandler", "Financial"): chandler_pts += 5
-        if has_clue("Chandler", "call for help"): chandler_pts += 10
-        if evidence_taken.get("cigarette", False): chandler_pts += 20
-        if has_clue("Chandler", "Tape 2"): chandler_pts += 20
+        # Count total correct accusations
+        correct_count = sum([dan_correct, toph_correct, austin_correct, chandler_correct])
 
-        # AUSTIN POINTS
-        if has_clue("Austin", "Tape 3"): austin_pts += 10
+    # --- ENDING BRANCHES ---
 
-        # DAN POINTS
-        if has_clue("Dan", "Tape 1") or cctv_cam1_solved: dan_pts += 10
-        if phone_unlocked: dan_pts += 10 # Phone access implies Dan & Toph call data
+    # TRUE ENDING: All 4 are suspects, all 4 crimes are exactly right.
+    if all_suspects and correct_count == 4:
+        jump true_ending
 
-        # CHECK "ALL" REQUIREMENT (Must manually set all 4 to 'Suspect' in Journal)
-        all_suspects_viable = False
-        required_names = ["Dan", "Toph", "Austin", "Chandler"]
-        viable_count = 0
-        for p in journal_list:
-            for req in required_names:
-                if req in p.name and p.status == "Suspect":
-                    viable_count += 1
-        
-        if viable_count >= 4:
-            all_suspects_viable = True
+    # GOOD ENDING: All 4 are suspects. Chandler is correct (Murder), but the other 3 have the WRONG crime.
+    elif all_suspects and chandler_correct and not dan_correct and not toph_correct and not austin_correct:
+        jump good_ending
 
-    # --- ARREST DECISION MENU ---
-    s "System: Review your evidence. The choices available depend on what you found."
-    
-    menu:
-        "Arrest Toph [toph_pts] PTS" if toph_pts >= 40:
-            jump arrest_toph
-            
-        "Arrest Chandler [chandler_pts] PTS" if chandler_pts >= 30:
-            jump arrest_chandler
-            
-        "Arrest Austin [austin_pts] PTS" if austin_pts >= 5:
-            jump arrest_austin
-            
-        "Arrest Dan [dan_pts] PTS" if dan_pts >= 10:
-            jump arrest_dan
-            
-        "Arrest ALL of them" if all_suspects_viable:
-            jump arrest_all
+    # NEUTRAL ENDING: 1 to 3 people got correct crimes, BUT Chandler got away (not caught/incorrect crime).
+    elif not chandler_correct and correct_count >= 1 and correct_count <= 3:
+        jump neutral_ending
+
+    # BAD ENDING: 0 people correctly arrested.
+    else:
+        jump bad_ending
+
 
 # -----------------------------------------------------------
 #                         ENDINGS
 # -----------------------------------------------------------
 
-label arrest_toph:
-    mc "I am arresting…"
-    mc "Toph Bernales."
-    
-    scene interrogation_bg with dissolve
-    show toph_face at center
-    
-    "Toph" "Wait- what me?"
-    "Toph" "Do you know who you’re arresting right now?"
-    "Toph" "This is ridiculous."
-    
-    jump normal_ending_dialogue
-
-label arrest_chandler:
-    mc "I am arresting…"
-    mc "Chandler Soriano."
-    
-    scene interrogation_bg with dissolve
-    show chandler_face at center
-    
-    "Chandler" "Now you care???"
-    "Chandler" "Where was all this justice before?! HUH?!"
-    "Chandler" "You don’t know anything about her… about what she went through!"
-    "Chandler" "Her dad ruined my mom… he treated her like a slave… DO YOU HEAR ME?!"
-    "Chandler" "And you expect me to just sit there and do nothing?!"
-    "Chandler" "She deserved it… after everything they’ve caused."
-    
-    jump normal_ending_dialogue
-
-label arrest_austin:
-    mc "I am arresting…"
-    mc "Austin Encantadia."
-    
-    scene interrogation_bg with dissolve
-    show austin_face at center
-    
-    "Austin" "Huh you don’t see it don’t you?"
-    "Austin" "It was never about one of us."
-    "Austin" "It was about all of us."
-    
-    mc "What nonsense are u saying?"
-    
-    "Austin" "I didn’t just see it…"
-    "System" "Austin tilts his head slightly."
-    "Austin" "I saw something beautiful."
-    
-    jump austin_ending_dialogue
-
-label arrest_dan:
-    mc "I am arresting…"
-    mc "Danielle Bautista."
-    
-    scene interrogation_bg with dissolve
-    show dan_face at center
-    
-    d "No—no, please…"
-    "System" "His voice is shaking."
-    d "It wasn’t me… I swear it wasn’t me!"
-    d "I just got caught up in all of this… I didn’t know it would go this far!"
-    "System" "His breathing gets uneven."
-    d "Please… you have to believe me…"
-    d "I didn’t mean any of it… I didn’t want any of this to happen…"
-    "System" "He is almost crying."
-    d "Please don’t take me in… please…"
-    
-    jump normal_ending_dialogue
-
-label arrest_all:
-    mc "I am arresting…"
-    
+label true_ending:
+    mc "I am arresting all of them."
     pc "All of them?"
-    mc "..."
-    mc "They’re connected."
-    mc "The evidence doesn’t point to one person, it points to all of them."
-    mc "It was never about one suspect…"
-    mc "It was about all of them."
+    mc "They’re connected. The evidence doesn’t point to one person, it points to the whole group."
+    mc "Austin stalked her. Dan restrained her. Toph supplied the drugs. And Chandler finished it."
     
     scene black with fade
     pause 2.0
-    show text "{size=50}TRUE ENDING REACHED{/size}" at truecenter with dissolve
+    show text "{size=50}TRUE ENDING REACHED\nFlawless Deduction{/size}" at truecenter with dissolve
     pause 3.0
     return
 
-# --- Ending Sequences ---
-
-label normal_ending_dialogue:
-    scene police_station with fade
-    show captain at right
-    
-    pc "Suspects have been detained."
-    pc "But something about this case still doesn’t sit right with me."
-    mc "What do you mean?"
+label good_ending:
+    mc "I am arresting all of them. But Chandler is the one who pulled the trigger."
+    pc "We got Chandler on Murder. But the charges on the others won't stick in court... you pinned the wrong secondary crimes on them."
+    pc "They walk. But at least Pat's killer is behind bars."
     
     scene black with fade
     pause 2.0
-    show text "{size=50}CASE CLOSED?{/size}" at truecenter with dissolve
+    show text "{size=50}GOOD ENDING REACHED\nPartial Justice{/size}" at truecenter with dissolve
     pause 3.0
     return
 
-label austin_ending_dialogue:
-    scene police_station with fade
-    show captain at right
-    
-    pc "Suspects have been detained."
-    pc "But something about this case still doesn’t sit right with me."
-    mc "What do you mean?"
-    pc "What did Austin mean when he said it was all about us?"
+label neutral_ending:
+    mc "I've made my arrests."
+    pc "You got some of the accomplices, Detective... but the timeline doesn't fit. Chandler is walking free."
+    pc "The mastermind got away."
     
     scene black with fade
     pause 2.0
-    show text "{size=50}CASE CLOSED?{/size}" at truecenter with dissolve
+    show text "{size=50}NEUTRAL ENDING REACHED\nThe Killer Escaped{/size}" at truecenter with dissolve
+    pause 3.0
+    return
+
+label bad_ending:
+    mc "I..."
+    pc "You don't have it, do you? Your charges are a mess. None of this will hold up in court."
+    pc "The DA is throwing the case out. They all walk."
+    
+    scene black with fade
+    pause 2.0
+    show text "{size=50}BAD ENDING REACHED\nCase Dismissed{/size}" at truecenter with dissolve
     pause 3.0
     return

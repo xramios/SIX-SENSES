@@ -289,7 +289,7 @@ screen bodyd1():
             nearest True
             zoom 1
         xpos 0 ypos 0
-        action Function(record_clue, "Pat (Victim)", "STAB –(UPPER CHEST) | Stab wound to the upper chest. likely penetrated the lung, possibly causing a collapsed lung. Internal bleeding in the chest is also possible")
+        action Function(record_clue, "Pat (Victim)", "STAB – (UPPER CHEST) | High pectoral penetration. Likely caused lung damage.")
         tooltip "Examine the Stab Wound"
     imagebutton:
         idle "images/cs/bruise1.png"
@@ -309,7 +309,7 @@ screen bodyd1():
             nearest True
             zoom 1
         xpos 0 ypos 0
-        action Function(record_clue, "Pat (Victim)", "BURN MARK | Circular burn on the left wrist, consistent with a cigarette. Appears intentional and inflicted while the victim was restrained.")
+        action Function(record_clue, "Pat (Victim)", "BURN MARK | Single circular burn on the left wrist — likely a cigarette.")
         tooltip "Examine the Burn Mark"
     imagebutton:
         idle "images/cs/bruise2.png"
@@ -692,12 +692,23 @@ screen precinctd3_ui():
         tooltip "Enter Evidence Room"
         
     # Exit precinct (End Day)
-    imagebutton:
-        idle "images/ui/arrow_idle.png"
-        hover "images/ui/arrow_hover.png"
-        at transform:
-            nearest True
-            zoom 0.5
-        xpos 1700 ypos 800 
-        action Jump("confirm_next_day3")
-        tooltip "Head Home (End Day 3)"
+    if current_day == 3:
+        imagebutton:
+            idle "images/ui/arrow_idle.png"
+            hover "images/ui/arrow_hover.png"
+            at transform:
+                nearest True
+                zoom 0.5
+            xpos 1700 ypos 800 
+            action Jump("confirm_next_day3")
+            tooltip "Head Home (End Day 3)"
+    elif current_day == 4:
+        imagebutton:
+            idle "images/ui/arrow_idle.png"
+            hover "images/ui/arrow_hover.png"
+            at transform:
+                nearest True
+                zoom 0.5
+            xpos 1700 ypos 800 
+            action Jump("confirm_next_day4")
+            tooltip "Head Home (End Day 4)"

@@ -4,7 +4,7 @@ screen detective_hud():
         hbox:
             align (0.98, 0.02)
             spacing 0.5
-            if current_location != "evidence_room":
+            if current_location != "evidence_room_hub":
                 hbox:
                     align (0.98, 0.02)
                     spacing 0.5
@@ -75,7 +75,7 @@ screen detective_hud():
             use patlockerd2
 
         # --- Day 3 ---
-        if current_location == "evidence_room":
+        if current_location == "evidence_room_hub":
             use evidence_room_d3
 
         if current_location == "precinctd3":
@@ -90,10 +90,10 @@ screen detective_hud():
                 text tooltip:
                     size 24
                     color "#FFFFFF"
+            
 # ============================================================================
 #                             INVENTORY SCREEN
 # ============================================================================
-
 screen inventory_screen():
     tag menu
     zorder 15
@@ -139,27 +139,21 @@ screen inventory_screen():
                         xalign 0.5
                     text selected_item.name size 30 color "#4A90E2"
                     text selected_item.description size 25
-                    if current_day >= 3 and selected_item.name == "Phone":
+                    if current_day >= 3:
                         hbox:
                             spacing 20
                             xalign 0.5
-                            if not phone_unlocked:
-                                textbutton "HACK":
-                                    action [Return(), Jump("start_hacking")]
-                                    style "journal_tab"
-                            else:
-                                textbutton "USE":
-                                    action [Return(), Jump("phone_interaction")]
-                                    style "journal_tab"
+                            textbutton "INSPECT":
+                                # This saves the item name, closes the inventory, and triggers the inspection label
+                                action [SetVariable("item_to_inspect", selected_item.name), Return(), Jump("inspect_item_logic")]
+                                style "journal_tab"
                 else:
                     text "Select item..." align (0.5, 0.5) color "#888"
     textbutton "RETURN" action Return() align (0.5, 0.95)
 
-
 # ============================================================================
 #                              JOURNAL SCREEN
 # ============================================================================
-
 screen journal_screen():
     tag menu
     zorder 15
@@ -245,7 +239,6 @@ screen journal_screen():
             $ current_person = journal_list[journal_page - 2]
             hbox:
                 spacing 50
-                # Left column: image and info (fixed, no scroll)
                 vbox:
                     xsize 500
                     spacing 10
@@ -269,7 +262,6 @@ screen journal_screen():
                     add Transform(current_person.image, fit="contain"):
                         size (400, 500)
                         xalign 0.5
-                # Right column: descriptions (scrollable only here)
                 viewport:
                     yinitial 0.0
                     mousewheel True
@@ -279,7 +271,7 @@ screen journal_screen():
                     frame:
                         xfill True
                         background None
-                        padding (0, 0, 20, 0)  # 20px right padding to avoid scrollbar overlap
+                        padding (0, 0, 20, 0) 
                         vbox:
                             spacing 15
                             for entry in current_person.descriptions:
@@ -337,11 +329,9 @@ style status_toggle_button:
     padding (10, 5)
     xminimum 150
 
-
 # ============================================================================
 #                           CCTV & PUZZLE SCREENS
 # ============================================================================
-
 screen cctv_monitor():
     modal True
     fixed:
@@ -411,7 +401,7 @@ label computer_access:
     jump evidence_room_hub
 
 screen computer_ui():
-    add "images/ui/windows_bg.png" # Your provided Windows UI Background
+    add "images/ui/windows_bg.png"
 
     hbox:
         align (0.95, 0.05)
@@ -424,19 +414,37 @@ screen computer_ui():
             action Show("file_manager_ui")
             tooltip "File Manager"
             
-        # Dummy App 2
-        imagebutton:
-            idle "images/ui/icon_app2.png"
-            hover Transform("images/ui/icon_app2.png", zoom=1.1)
-            action NullAction()
-            
-        # Dummy App 3
-        imagebutton:
-            idle "images/ui/icon_app3.png"
-            hover Transform("images/ui/icon_app3.png", zoom=1.1)
-            action NullAction()
+        # App 2: Documents
+        if current_day >= 4:
+            imagebutton:
+                idle "images/ui/icon_app2.png"
+                hover Transform("images/ui/icon_app2.png", zoom=1.1)
+                action Jump("day4_evidence_review")
+                tooltip "Autopsy & Forensic Reports"
+        else:
+            imagebutton:
+                idle "images/ui/icon_app2.png"
+                hover Transform("images/ui/icon_app2.png", zoom=1.1)
+                action NullAction()
 
-    textbutton "SHUT DOWN" action Jump("evidence_room_hub") align (0.05, 0.95) style "journal_tab"
+        # App 3: Gmail (Unlocks Day 4)
+        if current_day >= 3:
+            imagebutton:
+                idle "images/ui/icon_app3.png"
+                hover Transform("images/ui/icon_app3.png", zoom=1.1)
+                action Jump("day3_gmail_review")
+                tooltip "Email (Lab Techs)"
+        else:
+            imagebutton:
+                idle "images/ui/icon_app3.png"
+                hover Transform("images/ui/icon_app3.png", zoom=1.1)
+                action Notify("No new emails.")
+                tooltip "Email (Locked)"
+
+    textbutton "SHUT DOWN":
+        action Jump("evidence_room_hub") 
+        align (0.05, 0.95) 
+        style "journal_tab"
 
 screen file_manager_ui():
     modal True
@@ -453,17 +461,30 @@ screen file_manager_ui():
                 spacing 50
                 
                 vbox:
-                    imagebutton idle "images/ui/tape_icon.png" action [Hide("file_manager_ui"), SetVariable("tape_num", 1), Jump("cctv_tape_view")]
+                    imagebutton idle "images/ui/tape_icon.png" action [Hide("file_manager_ui"), SetVariable("tape_num", 1), Jump("cctv_tape_view")] at Transform(zoom=0.30)
                     text "Tape 01.mp4" color "#FFF" xalign 0.5
                 vbox:
-                    imagebutton idle "images/ui/tape_icon.png" action [Hide("file_manager_ui"), SetVariable("tape_num", 2), Jump("cctv_tape_view")]
-                    text "Tape 02.mp4" color "#FFF" xalign 0.5
+                    imagebutton idle "images/ui/tape_icon.png" action [Hide("file_manager_ui"), SetVariable("tape_num", 2), Jump("cctv_tape_view")] at Transform(zoom=0.30)
+                    text "Tape 02.mp4" color "#FFF" xalign 0.5   
                 vbox:
-                    imagebutton idle "images/ui/tape_icon.png" action [Hide("file_manager_ui"), SetVariable("tape_num", 3), Jump("cctv_tape_view")]
+                    imagebutton idle "images/ui/tape_icon.png" action [Hide("file_manager_ui"), SetVariable("tape_num", 3), Jump("cctv_tape_view")] at Transform(zoom=0.30)
                     text "Tape 03.mp4" color "#FFF" xalign 0.5
                 vbox:
-                    imagebutton idle "images/ui/tape_icon.png" action [Hide("file_manager_ui"), SetVariable("tape_num", 4), Jump("cctv_tape_view")]
+                    imagebutton idle "images/ui/tape_icon.png" action [Hide("file_manager_ui"), SetVariable("tape_num", 4), Jump("cctv_tape_view")] at Transform(zoom=0.30)
                     text "Tape 04.mp4" color "#FFF" xalign 0.5
+                    
+        elif scenario_picker1:
+            hbox:
+                align (0.5, 0.5)
+                spacing 100
+                
+                vbox:
+                    imagebutton idle "images/ui/tape_icon.png" action [Hide("file_manager_ui"), SetVariable("tape_num", 1), Jump("cctv_tape_view")] at Transform(zoom=0.30)
+                    text "Tape 01.mp4" color "#FFF" xalign 0.5
+                vbox:
+                    imagebutton idle "images/ui/tape_icon.png" action [Hide("file_manager_ui"), SetVariable("tape_num", 2), Jump("cctv_tape_view")] at Transform(zoom=0.30)
+                    text "Tape 02.mp4" color "#FFF" xalign 0.5
+                    
         else:
             text "NO FILES RECOVERED." align (0.5, 0.5) color "#888" size 30
             
@@ -484,8 +505,6 @@ label start_hacking:
 label setup_hack_level:
     $ hack_found = 0
     python:
-        # Generate 8 snippets for the grid (4 correct, 4 wrong)
-        # You will need to replace these paths with your actual fingerprint cutouts
         hack_snippets = []
         for i in range(4):
             hack_snippets.append({"id": i, "img": f"images/hack/correct_{hack_level}_{i}.png", "correct": True, "clicked": False})
@@ -517,7 +536,7 @@ label setup_hack_level:
 
 screen hacking_minigame():
     modal True
-    add "images/ui/hack_bg.png" # The screenshot background you provided
+    add "images/ui/hack_bg.png"
     
     # Timer Logic
     timer 1.0 action If(hacking_timer > 0, SetVariable("hacking_timer", hacking_timer - 1), Return("fail")) repeat True
@@ -556,13 +575,12 @@ screen hacking_minigame():
 
 screen phone_ui():
     modal True
-    # Optional: Add a phone background image here
     # add "images/ui/phone_bg.png" align (0.5, 0.5)
 
     frame:
         xysize (400, 700)
         align (0.5, 0.5)
-        background Solid("#111111E6") # Dark phone screen background
+        background Solid("#111111E6")
         
         text "PAT'S PHONE" align (0.5, 0.05) size 30 color "#FFF"
         
@@ -592,8 +610,7 @@ screen phone_ui():
 
 screen interrogation_room():
     modal True
-    add "images/ui/interrogation_bg.png" # Replace with your dark ambient room background
-
+    add "images/ui/interrogation_bg.png" 
     text "INTERROGATION ROOM" size 40 color "#FFF" align (0.5, 0.05)
 
     hbox:
@@ -648,3 +665,92 @@ screen interrogation_room():
             style "journal_tab"
     else:
         text "Question all suspects to proceed." align (0.5, 0.9) color "#888" size 20
+
+screen final_accusation():
+    modal True
+    add "images/ui/interrogation_bg.png" 
+
+    text "FINAL ACCUSATION" size 50 color "#FFF" align (0.5, 0.05)
+    text "Determine who to arrest and for what crime." size 25 color "#CCC" align (0.5, 0.12)
+
+    hbox:
+        align (0.5, 0.5)
+        spacing 50
+
+        # --- DAN ---
+        vbox:
+            spacing 10
+            add "images/suspects/dan_port.png" xalign 0.5
+            text "DAN" color "#FFF" xalign 0.5
+
+            textbutton end_dan_status:
+                action If(end_dan_status == "Person of Interest", SetVariable("end_dan_status", "Suspect"), SetVariable("end_dan_status", "Person of Interest"))
+                style "status_toggle_button"
+                xalign 0.5
+
+            if end_dan_status == "Suspect":
+                textbutton end_dan_crime:
+                    # Cycles through the crime list
+                    action SetVariable("end_dan_crime", possible_crimes[(possible_crimes.index(end_dan_crime) + 1) % len(possible_crimes)])
+                    style "journal_tab"
+                    xalign 0.5
+                    xsize 250
+
+        # --- TOPH ---
+        vbox:
+            spacing 10
+            add "images/characters/toph.png" xalign 0.5
+            text "TOPH" color "#FFF" xalign 0.5
+
+            textbutton end_toph_status:
+                action If(end_toph_status == "Person of Interest", SetVariable("end_toph_status", "Suspect"), SetVariable("end_toph_status", "Person of Interest"))
+                style "status_toggle_button"
+                xalign 0.5
+
+            if end_toph_status == "Suspect":
+                textbutton end_toph_crime:
+                    action SetVariable("end_toph_crime", possible_crimes[(possible_crimes.index(end_toph_crime) + 1) % len(possible_crimes)])
+                    style "journal_tab"
+                    xalign 0.5
+                    xsize 250
+
+        # --- AUSTIN ---
+        vbox:
+            spacing 10
+            add "images/suspects/austin.png" xalign 0.5
+            text "AUSTIN" color "#FFF" xalign 0.5
+
+            textbutton end_austin_status:
+                action If(end_austin_status == "Person of Interest", SetVariable("end_austin_status", "Suspect"), SetVariable("end_austin_status", "Person of Interest"))
+                style "status_toggle_button"
+                xalign 0.5
+
+            if end_austin_status == "Suspect":
+                textbutton end_austin_crime:
+                    action SetVariable("end_austin_crime", possible_crimes[(possible_crimes.index(end_austin_crime) + 1) % len(possible_crimes)])
+                    style "journal_tab"
+                    xalign 0.5
+                    xsize 250
+
+        # --- CHANDLER ---
+        vbox:
+            spacing 10
+            add "images/suspects/chandler.png" xalign 0.5
+            text "CHANDLER" color "#FFF" xalign 0.5
+
+            textbutton end_chandler_status:
+                action If(end_chandler_status == "Person of Interest", SetVariable("end_chandler_status", "Suspect"), SetVariable("end_chandler_status", "Person of Interest"))
+                style "status_toggle_button"
+                xalign 0.5
+
+            if end_chandler_status == "Suspect":
+                textbutton end_chandler_crime:
+                    action SetVariable("end_chandler_crime", possible_crimes[(possible_crimes.index(end_chandler_crime) + 1) % len(possible_crimes)])
+                    style "journal_tab"
+                    xalign 0.5
+                    xsize 250
+
+    textbutton "SUBMIT ACCUSATIONS":
+        align (0.5, 0.95)
+        action [Return(), Jump("evaluate_final_accusation")]
+        style "journal_tab"
