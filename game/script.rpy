@@ -719,8 +719,9 @@ label zlockersd2:
     $ current_location = "zlockersd2"
     $ show_hud = True
     scene zlockers with fade
-    mc "One locker reeks of blood. The scent is overpowering here."
-    mc "This is a locker of one of the students. I should check it out."
+    if not evidence_taken["knife"]:
+        mc "One locker reeks of blood. The scent is overpowering here."
+        mc "This is a locker of one of the students. I should check it out."
     $ result = renpy.call_screen("detective_hud")
     if result == "go_lockersd2":
         jump lockersd2
@@ -738,13 +739,15 @@ label patlockerd2:
         "The blade is still stained — dark, dried blood clings to the steel. The handle, however, has been wiped clean."
         "You open Toph Bernales' locker and find a butterfly knife, no prints. Someone knew what they were doing."
     if evidence_taken["knife"]:
-        mc "…This feels too easy."
-        "Something's off. Like eyes on your back."
-        "The hair on your neck stands up."
-        "You turn — just in time to catch a glimpse of a student bolting down the hall. Footsteps echo off the tile."
-        mc "Hey — !"
-        mc "Gone. Just like that."
-        "You're left standing there, heart pounding, wondering what their deal was."
+        if seen_locker_scene:
+            $ seen_locker_scene = True
+            mc "…This feels too easy."
+            "Something's off. Like eyes on your back."
+            "The hair on your neck stands up."
+            "You turn — just in time to catch a glimpse of a student bolting down the hall. Footsteps echo off the tile."
+            mc "Hey — !"
+            mc "Gone. Just like that."
+            "You're left standing there, heart pounding, wondering what their deal was."
     $ result = renpy.call_screen("detective_hud")
     if result == "go_lockersd2":
         jump lockersd2
@@ -1886,7 +1889,7 @@ label evaluate_final_accusation:
         # 2. Check if the assigned crimes match the TRUTH
         dan_correct = (end_dan_status == "Suspect" and end_dan_crime == "Unlawful Restraint")
         toph_correct = (end_toph_status == "Suspect" and end_toph_crime == "Drug Distribution")
-        austin_correct = (end_austin_status == "Suspect" and end_austin_crime == "Stalking")
+        austin_correct = (end_austin_status == "Suspect" and end_austin_crime == "Desecration of a Corpse")
         chandler_correct = (end_chandler_status == "Suspect" and end_chandler_crime == "Murder")
 
         # Count total correct accusations

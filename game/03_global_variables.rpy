@@ -16,6 +16,7 @@ default blood_smell_faint = False
 default blood_smell_strong = False
 default blood_smell_overwhelming = False
 default rubble_moved = False
+default seen_locker_scene  =False
 default current_location = "hallway"
 default evidence_taken = {
     "waterbottle": False,
